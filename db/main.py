@@ -182,17 +182,17 @@ def delete_chat(user_id: int, chat_id: int):
 # insert_user("daisy", "bebe")
 # get_user_id("daisy")
 
-chat = '''{
-  "model": "mistral",
-  "messages": [
-    {"role": "system", "content": "You are helpful."},
-    {"role": "user", "content": "Explain RAG."},
-    {"role": "system", "content": "No, google it."}
-  ],
-  "stream": false
-}'''
+# chat = '''{
+#   "model": "mistral",
+#   "messages": [
+#     {"role": "system", "content": "You are helpful."},
+#     {"role": "user", "content": "Explain RAG."},
+#     {"role": "system", "content": "No, google it."}
+#   ],
+#   "stream": false
+# }'''
 
 # create_chat(1, "first chat", chat)
 # get_chat(1, 1)
 # update_chat(1, 1, chat)
-delete_chat(1, 1)
+# delete_chat(1, 1)
