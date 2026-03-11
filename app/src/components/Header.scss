@@ -1,0 +1,45 @@
+@use '../variables' as *;
+
+@font-face {
+    font-family: "cinzel";
+    src: url("cinzel/Cinzel-Regular.otf") format("opentype");
+}
+
+.header {
+    display: flex;
+    border-bottom: 8px $black solid;
+    font-family: "cinzel";
+    // height: 57px;
+    height: fit-content;
+    text-align: center;
+}
+
+.logo {
+    position: absolute;
+    left: 0;
+    top: -7px;
+    height: 115px;
+}
+
+.name {
+    flex-grow: 1;
+    font-size: xx-large;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 115px;
+    margin: 0;
+}
+
+.icon {
+    flex-grow: 0;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    background-color: $black;
+    color: $white;
+    height: 50px;
+    width: 50px;
+    border-radius: 10px;
+    margin: 1em;
+}

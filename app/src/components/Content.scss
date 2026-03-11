@@ -1,0 +1,35 @@
+@use "../variables" as *;
+@use "../mixins" as *;
+
+.content {
+  height: 100%;
+  display: flex;
+}
+
+.left-side {
+  background-color: yellow;
+  @include break(xl) {
+    flex-grow: 1;
+  }
+  @include break(xs) {
+    position: absolute;
+  }
+}
+
+.middle {
+  background-color: red;
+  @include break(xl) {
+    flex-grow: 2;
+  }
+
+}
+
+.right-side {
+  background-color: pink;
+  @include break(xl) {
+    flex-grow: 1;
+  }
+  @include break(xs) {
+    position: absolute;
+  }
+}
