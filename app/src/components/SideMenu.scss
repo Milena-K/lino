@@ -1,0 +1,87 @@
+@use "../variables" as *;
+@use "../mixins" as *;
+
+.side-menu {
+  display:flex;
+  justify-content: space-between;
+  height: 100%;
+
+  @include break(xl) {
+  }
+  @include break(xs) {
+    position: absolute;
+    z-index: 1;
+  }
+}
+
+.menu {
+  grid-area: "side-menu";
+  transition: width 1s;
+  overflow: hidden;
+  background-color: $yellow;
+  transition: 0.2s;
+  padding: 1em;
+  padding-right: 0;
+  @include break(xl) {
+    width: 20vw;
+    max-width: 400px;
+  }
+  @include break(xs) {
+    width: 80vw;
+  }
+
+  &.hide {
+    transition: 0.2s;
+    width: 0px;
+    padding: 0;
+  }
+
+}
+
+.btns {
+  padding-bottom: 3em;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-left: 0.3em;
+  padding-right: 0.3em;
+  background-color: $yellow;
+}
+
+.back-btn {
+  padding:0;
+  background: none;
+  color: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+.back-btn-img {
+  margin:0;
+  rotate: 180deg;
+  fill: $dark-yellow;
+  color: $dark-yellow;
+  &.closed {
+    rotate: 0deg;
+  }
+}
+
+.btn {
+  padding: 2px;
+  color: inherit;
+  // border: 1px $dark-yellow solid;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 0.5em;
+  background-color: $yellow;
+  &:hover {
+    background-color: rgba($dark-yellow, 0.2);
+
+  }
+}
+
+.btn-img {
+  margin:0;
+  fill: $dark-yellow;
+}

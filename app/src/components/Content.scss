@@ -2,34 +2,99 @@
 @use "../mixins" as *;
 
 .content {
-  height: 100%;
-  display: flex;
+  flex-grow: 2;
+  position: relative;
+  @include break(xs) {
+    display: block;
+  }
+  @include break(xl) {
+    display: grid;
+    grid-template-columns: auto 2fr auto;
+    grid-template-areas: "side-menu" "middle" "knowledge-base";
+    grid-template-rows: 1fr;
+  }
 }
 
-.left-side {
-  background-color: yellow;
-  @include break(xl) {
-    flex-grow: 1;
-  }
-  @include break(xs) {
-    position: absolute;
-  }
-}
 
 .middle {
-  background-color: red;
-  @include break(xl) {
-    flex-grow: 2;
+  display: flex;
+  justify-content: center;
+  @include break(xs) {
+    width: 100vw;
   }
-
+  @include break(xl) {
+    grid-area: "middle";
+  }
 }
 
-.right-side {
-  background-color: pink;
+.chat {
+  flex-grow: 1;
+  max-width: 820px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
   @include break(xl) {
-    flex-grow: 1;
   }
   @include break(xs) {
-    position: absolute;
+    margin: 0 3em 1em 3em;
+  }
+}
+
+.messages-area {
+  padding-top: 1em;
+  flex-grow: 2;
+}
+
+.message-composer {
+  display: flex;
+  align-items: end;
+  margin-top: 1em;
+  // padding: auto 0.2em auto 0.2em;
+  padding: 0 1em 0 1em;
+  border-radius: 5px;
+  border: 1px solid $dark-yellow;
+  background-color: $white;
+  @include break(xl) {
+    margin-bottom: 3em;
+  }
+  @include break(xs) {
+    // margin: 1em 2em 1em 2em;
+    margin-bottom: 0em;
+  }
+}
+
+.message-input {
+  display: flex;
+  align-items: center;
+  color: $grey;
+  flex-grow: 2;
+  overflow-wrap: break-word;
+  line-break: normal;
+  overflow-y: auto;
+  resize: none;
+  vertical-align: middle;
+  min-height: 3em;
+  @include break(xs) {
+    height: 2em;
+  }
+}
+
+div[contenteditable] {
+  &[placeholder]:empty::before {
+    content: attr(placeholder);
+    // z-index: 1;
+    line-height: 1.6;
+    color: #555;
+    word-break: break-all;
+    user-select: none;
+    padding: 0.6em;
+  }
+
+  &[placeholder]:empty:focus::before {
+    content: "";
+  }
+  &:focus {
+    // border: none;
+    outline: 0px solid transparent;
   }
 }

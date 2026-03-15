@@ -1,4 +1,5 @@
 @use '../variables' as *;
+@use '../mixins' as *;
 
 @font-face {
     font-family: "cinzel";
@@ -6,22 +7,39 @@
 }
 
 .header {
+    position: relative;
     display: flex;
     border-bottom: 8px $black solid;
     font-family: "cinzel";
     // height: 57px;
     height: fit-content;
     text-align: center;
+    justify-content: end;
+    @include break(sm) {
+        height: 52px;
+    }
 }
 
 .logo {
     position: absolute;
-    left: 0;
-    top: -7px;
-    height: 115px;
+    left: 1em;
+    top: 1em;
+    height: 70px;
+    @include break(sm) {
+        height: 52px;
+        left: 0.2em;
+        top: 0.2em;
+    }
 }
 
 .name {
+    position: absolute;
+    right: 0;
+    left: 0;
+    top: 20px;
+    margin-right: auto;
+    margin-left: auto;
+
     flex-grow: 1;
     font-size: xx-large;
     display:flex;
@@ -29,6 +47,9 @@
     align-items: center;
     margin-left: 115px;
     margin: 0;
+    @include break(sm) {
+        top: 7px;
+    }
 }
 
 .icon {
@@ -42,4 +63,11 @@
     width: 50px;
     border-radius: 10px;
     margin: 1em;
+    @include break(sm) {
+        // padding: 2em;
+        margin: 0.7em;
+        height: 30px;
+        width: 30px;
+        border-radius: 5px;
+    }
 }

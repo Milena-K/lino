@@ -1,0 +1,42 @@
+@use "../variables" as *;
+@use "../mixins" as *;
+
+.knowledge-base {
+  grid-area: "knowledge-base";
+  transition: width 0.2s;
+  overflow: hidden;
+  background-color: pink;
+
+  @include break(xl) {
+    width: 20vw;
+    max-width: 400px;
+  }
+  @include break(lg) {
+    position: absolute;
+    z-index: 1;
+    right: 0;
+    left: 0;
+    margin-top: 10vh;
+    margin-left: auto;
+    margin-right: auto;
+    height: 400px;
+    width: 40vw;
+    max-width: 400px;
+    display: block;
+    border-radius: 10px;
+    background-color: $dark-background;
+    border: 3px dotted $dark-yellow;
+    padding: 0.3em;
+    &.hide {
+    display: none;
+    }
+  }
+  @include break(sm) {
+      width: 300px;
+  }
+
+  &.hide {
+    transition: width 0.2s;
+    width: 0px;
+  }
+}
