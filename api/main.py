@@ -1,46 +1,52 @@
-import httpx
+from typing import Literal
+import uuid
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, ValidationError, RootModel
+from typing import TypeAlias
+from ollama import chat, AsyncClient
 import json
+import asyncio
 
 app = FastAPI()
 
-OLLAMA_BASE_URL = "http://192.168.100.248"
+origins = [
+    "http://localhost:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# OLLAMA_BASE_URL = "http://192.168.100.248"
+OLLAMA_BASE_URL = "http://localhost:11434"
+
+
+class Message(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
 
 class PromptRequest(BaseModel):
-    prompt: str
-    model: str = "llama3.2"
+    messages: list[Message]
 
-@app.post("/chat/stream")
+
+@app.post("/chat")
 async def chat_stream(request: PromptRequest):
     """The user writes a prompt and receives a response back."""
     async def generate():
-        auth = httpx.BasicAuth(username="milena", password="this_is_the_password")
-        async with httpx.AsyncClient(timeout=3000, auth=auth) as client:
-            async with client.stream(
-                'POST',
-                f'{OLLAMA_BASE_URL}/api/generate',
-                json={
-                    "prompt": request.prompt,
-                    "model": request.model,
-                    "stream": True
-                }
-            ) as response:
-                async for chunk in response.aiter_lines():
-                    if chunk:
-                        data = json.loads(chunk)
-                        yield data.get(response, "")
-
+        response = await AsyncClient().chat(model='llama3.2:1B', stream=True, messages=request.messages)
+        async for chunk in response:
+            if chunk:
+                yield chunk.message.content.encode()
     return StreamingResponse(generate(), media_type="text/plain")
 
-# call LLM server
-# curl http://192.168.100.248/api/generate -d '{"prompt": "Tell me a story", "model":"llama3.2"}'
 
-
-# class UserLogin(BaseModel):
-#     user_name: str
-#     password: str
-
-# async def login(user: UserLogin):
-#     pass
+@app.post("/chat/{id}")
+def save_chat(id: uuid.UUID):
+    """Saves chat to db, this func should be called by the client after each response from /chat"""
+    print(id)
