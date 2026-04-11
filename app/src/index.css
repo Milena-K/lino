@@ -6,3 +6,17 @@ body {
     margin:0;
     min-height: 100vh;
 }
+
+::-webkit-scrollbar {
+    width: 7px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: lightgrey;
+    border: 0px solid;
+    border-radius: 20px;
+}

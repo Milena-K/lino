@@ -15,7 +15,7 @@ function Content() {
   const [reply, setReply] = useState("");
   const [prompt, setPrompt] = useState("");
 
-  const handleKBClose = (event: MouseEvent) => {
+  const handleKBClose = (event) => {
     const name = event.target.getAttribute('name');
 
     if (showKB && (name == null || name != 'knowledge-base')) {
@@ -24,13 +24,35 @@ function Content() {
     }
   }
 
-  const handleSubmit = async (event: KeyboardEvent) => {
+  const getAssistantResponse = async (messages: Message[]) => {
+    const data = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ "messages": messages})
+    }
+    const res = await fetch('http://localhost:8000/chat', data)
+    const reader = res.body?.getReader();
+    if (!reader) return;
+
+    const decoder = new TextDecoder();
+    let out = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      out += decoder.decode(value)
+      setReply(out)
+    }
+  }
+
+  const handleSubmit = (event: KeyboardEvent) => {
     if(event.key === 'Enter' && event.shiftKey) {
       event.preventDefault();
       document.execCommand("insertLineBreak");
     }
-    if(event.key === 'Enter' && !event.shiftKey) {
-      // const prompt = event.target?.innerText;
+
+    if(event.key === 'Enter' && !event.shiftKey && prompt) {
       const user_message: Message = {
         "role": "user",
         "content": prompt,
@@ -39,8 +61,6 @@ function Content() {
         "role": "assistant",
         "content": reply,
       }
-      setPrompt("");
-
       let new_messages;
       if (reply) {
         new_messages = [...messages, assistant_message, user_message]
@@ -48,51 +68,55 @@ function Content() {
         new_messages = [...messages, user_message]
       }
       setMessages(new_messages)
-      const data = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ "messages": new_messages})
-      }
-      const res = await fetch('http://localhost:8000/chat', data)
-      const reader = res.body?.getReader();
-      if (!reader) return;
-
-      const decoder = new TextDecoder();
-      let out = '';
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        //out += decoder.decode(value, { stream: true });
-        console.log(value)
-        out += decoder.decode(value)
-        setReply(out)
-      }
+      setReply("")
+      setPrompt("");
+      getAssistantResponse(new_messages);
     }
   }
 
+  const resizeTextarea = () => {
+    const textarea = document.querySelector('.auto-resize-textarea');
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 2 + 'px';
+  }
 
+  useEffect(() => {
+    resizeTextarea();
+
+  }, [prompt])
+
+  useEffect(() => {
+    window.addEventListener('resize', resizeTextarea)
+    window.addEventListener('load', resizeTextarea)
+
+    // Remove the event listener when the component unmounts
+    return () => {
+      window.removeEventListener('resize', resizeTextarea);
+      window.removeEventListener('load', resizeTextarea)
+    };
+  }, [])
 
   return (
     <div className="content" onClick={handleKBClose}>
       <ButtonContext value={[showKB, setShowKB]}>
         <SideMenu />
-
         <div className='middle'>
           <div className='chat'>
-            <div id='messages' className='messages-area'>
+            <div className='messages-area'>
               {
-                messages.map((message:Message, index) => <div key={index}>{message.content}</div>)
+                messages.map((message: Message, index) => (
+                  <div key={index} className={message.role + "-message"}>
+                    {message.content}
+                  </div>
+                ))
               }
-              { reply }
+              <div className='assistant-message'>{reply}</div>
             </div>
-            {/*<div className='message-composer'>
-              <div id="message-input" contentEditable="true" className='message-input'
-                   placeholder='Ask anything' onKeyDown={handleSubmit} />
-            </div>*/}
-            <input placeholder='Ask anything' value={prompt}
-                   onChange={(e) => setPrompt(e.target.value)} onKeyDown={handleSubmit} />
+            <div className='textarea-container'>
+              <textarea contentEditable="true" className='auto-resize-textarea'
+                        value={prompt} onChange={(e) => setPrompt(e.target.value)}
+                        rows={1} placeholder='Ask anything' onKeyDown={handleSubmit}/>
+            </div>
           </div>
         </div>
 
