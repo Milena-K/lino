@@ -1,0 +1,48 @@
+// "use strict"
+import * as opaque from "@serenity-kit/opaque"
+
+var URL_BASE_STR = "http://localhost:8000/auth/register"
+
+var clientRegState = null;
+
+async function register(username, password) {
+  const { clientRegistrationState, registrationRequest } =
+    opaque.client.startRegistration({ password });
+  clientRegState = clientRegistrationState;
+  const response = await fetch(URL_BASE_STR, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": ["http://localhost:8000/auth/register","*"],
+      "Access-Control-Allow-Credentials": false,
+    },
+    body: JSON.stringify({
+      username,
+      regReq: registrationRequest,
+    })
+  }).then((response) => response.body)
+    .then((body) => {
+      body.getReader()
+          .read()
+          .then((val) => {
+            return response = new TextDecoder().decode(val.value)
+            console.log("RESULT:")
+            console.log(result)
+          })
+  })
+  return result;
+}
+
+onmessage = async function (e) {
+  var action = e.data.action;
+  var idU = e.data.id;
+  var pwdU = e.data.pw;
+  if (action === "register") {
+    result = await register(idU, pwdU);
+  } else if (action === "login") {
+    console.log("not done yet.")
+    // requestCredentials(idU, pwdU);
+  } else {
+    console.log("smth up.")
+  }
+};

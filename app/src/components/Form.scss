@@ -1,0 +1,71 @@
+@use "../variables" as *;
+
+@font-face {
+    font-family: "cinzel";
+    src: url("cinzel/Cinzel-Regular.otf") format("opentype");
+}
+
+.register {
+    font-family: "cinzel";
+    display: flex;
+    margin: auto;
+    @media (min-width: $bp-desktop) {
+        margin: 0;
+        margin-top: 20vh;
+    }
+}
+
+.register-form {
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-field {
+    width: 18em;
+    padding: 0.5em;
+    display: block;
+    margin-bottom: 1em;
+    border: 1px solid $black;
+    color: $black;
+    border-radius: 5px;
+    &:focus {
+        outline: 1px solid $dark-yellow;
+        border: 1px solid $dark-yellow;
+    }
+}
+
+.submit-btn {
+    padding: 0.5em 1em;
+    font-family: "cinzel";
+    align-self: end;
+    background-color: transparent;
+    border: 1px solid $dark-yellow;
+    color: $black;
+    border-radius: 5px;
+    &:hover {
+        outline: 1px solid $dark-yellow;
+        background-color: $dark-background;
+        cursor: pointer;
+    }
+}
+
+.form-title {
+    text-align: center;
+}
+
+.login {
+    font-family: "cinzel";
+    display: flex;
+    margin: auto;
+    @media (min-width: $bp-desktop) {
+        margin: 0;
+        margin-top: 20vh;
+    }
+}
+
+.login-form {
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+}

@@ -13,3 +13,4 @@ class ChatJSON(BaseModel):
     messages: List[MessageJSON]
     stream: Optional[bool] = False
     temperature: Optional[float] = Field(default=0.7, ge=0.0, le=2.0)
+

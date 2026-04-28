@@ -8,9 +8,13 @@ from typing import TypeAlias
 from ollama import chat, AsyncClient
 import json
 import asyncio
+from auth import router as auth_router
+import opaque_ke_py as opaque
+
 
 app = FastAPI()
 
+# "http://localhost:5173",
 origins = [
     "http://localhost:5173",
 ]
@@ -19,10 +23,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 # OLLAMA_BASE_URL = "http://192.168.100.248"
 OLLAMA_BASE_URL = "http://localhost:11434"
 

@@ -1,3 +1,4 @@
+// colors
 $black: #1A1A1A;
 $dark-yellow: #C69200;
 $yellow: #FFE8A3;
@@ -6,3 +7,10 @@ $grey: #6E6E6E;
 $dark-background: #FFF4D9;
 $light-background: #FFF8E6;
 
+// media queries - mobile first
+$bp-mobile-small: 320px;
+$bp-mobile-large: 480px;
+$bp-tablet: 768px;
+$bp-desktop: 1024px;
+$bp-large-desktop: 1200px;
+$bp-extra-large: 1440px;

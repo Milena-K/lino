@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-import psycopg2
+import psycopg
 import os
 import bcrypt
+import asyncio
 from dotenv import load_dotenv
 from pydantic import ValidationError
+from datetime import datetime
 
 from db_types import ChatJSON
 
@@ -15,27 +17,56 @@ DB_USER = os.getenv('DB_USER')
 DB_PASS = os.getenv('DB_PASS')
 DB_NAME = os.getenv('DB_NAME')
 
-conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
+async def delete_all_tables():
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
+    delete_all_query = """
+    DROP TABLE IF EXISTS users, login_records, chats
+    """
+    async with aconn:
+        async with aconn.cursor() as curr:
+            await curr.execute(delete_all_query)
+            print("Deleted all tables.")
 
-cursor = conn.cursor()
+### USERS CRUD
 
-
-def create_users_table_fn():
-    # create USERS table
+async def create_users_table():
+    """create USERS table"""
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
     create_users_table = '''
     create table if not exists users (
         user_id SERIAL PRIMARY KEY,
         user_name VARCHAR(100) UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        salt VARCHAR(70)
+        registration_record TEXT NOT NULL
     )
     '''
-    cursor.execute(create_users_table)
-    conn.commit()
-    print("USERS Table created.")
+    async with aconn:
+        async with aconn.cursor() as curr:
+            await curr.execute(create_users_table)
+            print("USERS Table created.")
 
-def create_chats_table_fn():
-    # create CHATS table
+async def create_login_records_table():
+    """create login records table"""
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
+    create_login_table = '''
+    create table if not exists login_records (
+        login_id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        login_record TEXT NOT NULL,
+        login_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_user_login
+            FOREIGN KEY (user_id)
+            REFERENCES users(user_id)
+    )
+    '''
+    async with aconn:
+        async with aconn.cursor() as curr:
+            await curr.execute(create_login_table)
+            print("LOGIN_RECORDS table created.")
+
+
+async def create_chats_table():
+    """create CHATS table"""
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
     create_chats_table = '''
     create table if not exists chats (
         chat_id SERIAL PRIMARY KEY,
@@ -47,152 +78,164 @@ def create_chats_table_fn():
             REFERENCES users(user_id)
     )
     '''
-    cursor.execute(create_chats_table)
-    conn.commit()
-    print("CHATS Table created.")
+    async with aconn:
+        async with aconn.cursor() as curr:
+            await curr.execute(create_chats_table)
+            print("CHATS Table created.")
+
 
 # USERS CRUD operations
-def insert_user(user_name: str, password: str):
-    salt = bcrypt.gensalt()
-    password_hash = bcrypt.hashpw(password.encode("utf-8"), salt)
 
+async def create_user(user_name: str, registration_record: str):
+    """Insert user record"""
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
     insert_query = '''
-    INSERT INTO users (user_name, password_hash, salt)
-    VALUES (%s, %s, %s)
+    INSERT INTO users (user_name, registration_record)
+    VALUES (%s, %s)
     RETURNING user_id;
     '''
-    cursor.execute(insert_query, (user_name, password_hash, salt))
-    conn.commit()
-    result = cursor.fetchone()
-    if result:
-        print(f"User inserted with ID: {result[0]}")
+    async with aconn:
+        async with aconn.cursor() as curr:
+            insert = await curr.execute(insert_query, (user_name, registration_record))
+            result = await insert.fetchone()
+            print(f"User inserted with ID: {result}")
 
-# insert_user("milena", "pass")
-
-def update_user(user_id: int, password: str):
-    salt = bcrypt.gensalt()
-    password_hash = bcrypt.hashpw(password.encode("utf-8"), salt)
-
+async def update_user(user_id: int, registration_record: str):
+    """Update user record"""
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
     update_query = '''
     UPDATE users
-    SET password_hash = %s,
-        salt = %s
+    SET registration_record = %s
     WHERE user_id = %s
     '''
-    cursor.execute(update_query, (password_hash, salt, user_id))
-    conn.commit()
-    print(f"User updated pass hash: {password_hash}")
+    async with aconn:
+        async with aconn.cursor() as curr:
+            await curr.execute(update_query, (registration_record, user_id))
+            print("User updated the password.")
 
-# update_user(1, "pass")
-def delete_user_id(user_id: int):
+async def get_user_id(user_name: str):
+    """Return user record"""
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
+    get_user_query = ''' SELECT * FROM users WHERE user_name = %s '''
+
+    async with aconn:
+        async with aconn.cursor() as curr:
+            users = await curr.execute(get_user_query, (user_name,))
+            result = await users.fetchone()
+            if result:
+                print(f"The user {user_name} has an ID {result[0]}")
+            else:
+                print(f"The user {user_name} does not exist.")
+
+async def delete_user_id(user_id: int):
+    """Delete user record"""
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
     delete_query = '''
     DELETE FROM users
     WHERE user_id = %s
     '''
-    cursor.execute(delete_query, (user_id,))
-    conn.commit()
-    print(f"User with id {user_id} has been deleted.")
+    async with aconn:
+        async with aconn.cursor() as curr:
+            await curr.execute(delete_query, (user_id,))
+            print(f"User with id {user_id} has been deleted.")
 
-def get_user_id(user_name: str):
-    cursor.execute('''
-    SELECT * FROM users
-    WHERE user_name = %s
-    ''', (user_name,))
-    conn.commit()
-    result = cursor.fetchone()
-    if result:
-        print(f"The user {user_name} has an ID {result[0]}")
-    else:
-        print(f"The user {user_name} does not exist.")
+### CHATS CRUD
 
-
-def create_chat(user_id: int, title: str, messages_json: str):
+async def create_chat(user_id: int, title: str, chat: str):
+    """Create chat record"""
     try:
-         ChatJSON.model_validate_json(messages_json)
+        ChatJSON.model_validate_json(chat)
+        aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
+        insert_query = '''
+        INSERT INTO chats (user_id, title, messages)
+        VALUES (%s, %s, %s)
+        RETURNING user_id, title, messages;
+        '''
+        async with aconn:
+            async with aconn.cursor() as curr:
+                chats = await curr.execute(insert_query, (user_id, title, chat))
+                result = await chats.fetchone()
+                if result:
+                    print(f"Chat inserted with ID: {result}")
     except ValidationError as e:
         print(e.errors())
 
-    insert_query = '''
-    INSERT INTO chats (user_id, title, messages)
-    VALUES (%s, %s, %s)
-    RETURNING user_id, title, messages;
-    '''
-    cursor.execute(insert_query, (user_id, title, messages_json))
-    conn.commit()
-    result = cursor.fetchone()
-    if result:
-        print(f"Chat inserted with ID: {result}")
-
-def get_chat(user_id: int, chat_id: int):
-    # checking only chat_id is sufficient, however I want to add a security check
+async def get_chat_by_id(user_id: int, chat_id: int):
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
+    # TODO: checking only chat_id is sufficient, however I want to add a security check
     # Q: Did this user create the chat?
-    cursor.execute('''
+    chat_query = '''
     SELECT title, messages FROM chats
     WHERE user_id = %s and chat_id = %s
-    ''', (user_id, chat_id))
-    conn.commit()
-    result = cursor.fetchone()
-    if result:
-        print(result)
-    else:
-        print(f"There is no such chat for user ID {user_id}")
+    '''
+    async with aconn:
+        async with aconn.cursor() as curr:
+            chats = await curr.execute(chat_query, (user_id, chat_id))
+            result = await chats.fetchone()
+            if result:
+                print(result)
+            else:
+                print(f"There is no such chat for user ID {user_id}")
 
-def update_chat(user_id: int, chat_id: int, messages_json: str):
+
+async def update_chat(user_id: int, chat_id: int, messages_json: str):
     try:
         ChatJSON.model_validate_json(messages_json)
+        aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
+        update_query = '''
+        UPDATE chats
+        SET messages = %s
+        WHERE chat_id = %s and user_id = %s
+        RETURNING messages
+        '''
+        async with aconn:
+            async with aconn.cursor() as curr:
+                chats = await curr.execute(update_query, (messages_json, chat_id, user_id))
+                result = await chats.fetchone()
+                if result:
+                    print(f"The messages are updated: {result}")
+                else:
+                    print(f"This conversation does not belong to user ID {user_id}")
     except ValidationError as e:
         print(e.errors())
 
-    cursor.execute('''
-    UPDATE chats
-    SET messages = %s
-    WHERE chat_id = %s and user_id = %s
-    RETURNING messages
-    ''', (messages_json, chat_id, user_id))
-    conn.commit()
-    result = cursor.fetchone()
-    if result:
-        print(f"The messages are updated: {result}")
-    else:
-        print(f"This conversation does not belong to user ID {user_id}")
-
-
-def delete_chat(user_id: int, chat_id: int):
+async def delete_chat(user_id: int, chat_id: int):
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
     delete_query = '''
     DELETE FROM chats
     WHERE user_id = %s and chat_id = %s
     '''
-    cursor.execute(delete_query, (user_id, chat_id))
-    conn.commit()
-    print(f"Chat with id {chat_id} has been deleted.")
+    async with aconn:
+        async with aconn.cursor() as curr:
+            await curr.execute(delete_query, (user_id, chat_id))
+            print(f"Chat with id {chat_id} has been deleted.")
 
 
-######### TESTING ###########
+# CRUD LOGIN RECORDS
+async def create_login_record(user_id: int, login_record: str, login_time: str):
+    # TODO check if date is in correct form
+    aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
+    insert_query = '''
+    INSERT INTO login_records (user_id, login_record, login_time)
+    VALUES (%s, %s, %s)
+    RETURNING user_id, login_record, login_time;
+    '''
+    async with aconn:
+        async with aconn.cursor() as curr:
+            chats = await curr.execute(insert_query, (user_id, login_record, login_time))
+            result = await chats.fetchone()
+            if result:
+                print(f"Chat inserted with ID: {result}")
 
-# drop_users_table = 'DROP TABLE users CASCADE'
-# drop_chats_table = 'DROP TABLE chats'
-# cursor.execute(drop_users_table)
-# cursor.execute(drop_chats_table)
-# conn.commit()
+# TODO write get login record (sort by timestamp or id and get last)
 
-# create_users_table_fn()
-# create_chats_table_fn()
+if __name__ == "__main__":
+    # asyncio.run(create_user("milena", "test"))
+    # chat = '{"model": "llama3.2:1B", "messages": [{"role": "user", "content":"What are peaches?"}, {"role": "assistant", "content":"Oranges are a fruit."}]}'
+    asyncio.run(create_login_record(2, "test", str(datetime.now())))
 
-# delete_user_id(2)
-# insert_user("daisy", "bebe")
-# get_user_id("daisy")
-
-# chat = '''{
-#   "model": "mistral",
-#   "messages": [
-#     {"role": "system", "content": "You are helpful."},
-#     {"role": "user", "content": "Explain RAG."},
-#     {"role": "system", "content": "No, google it."}
-#   ],
-#   "stream": false
-# }'''
-
-# create_chat(1, "first chat", chat)
-# get_chat(1, 1)
-# update_chat(1, 1, chat)
-# delete_chat(1, 1)
+# if __name__ == "__main__":
+    # asyncio.run(delete_all_tables())
+    # asyncio.run(create_users_table())
+    # asyncio.run(create_login_records_table())
+    # asyncio.run(create_chats_table())
