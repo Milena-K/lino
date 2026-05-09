@@ -1,21 +1,12 @@
-from typing import Literal
-import uuid
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, ValidationError, RootModel
-from typing import TypeAlias
-from ollama import chat, AsyncClient
-import json
-import asyncio
-from auth import router as auth_router
-import opaque_ke_py as opaque
-
+from fastapi import FastAPI
+from routers.auth import router as auth_router
+from routers.users import router as users_router
+from routers.chats import router as chats_router
 
 app = FastAPI()
-
-# "http://localhost:5173",
 origins = [
+    # "*",
     "http://localhost:5173",
 ]
 
@@ -28,30 +19,5 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
-# OLLAMA_BASE_URL = "http://192.168.100.248"
-OLLAMA_BASE_URL = "http://localhost:11434"
-
-
-class Message(BaseModel):
-    role: Literal["user", "assistant"]
-    content: str
-
-class PromptRequest(BaseModel):
-    messages: list[Message]
-
-
-@app.post("/chat")
-async def chat_stream(request: PromptRequest):
-    """The user writes a prompt and receives a response back."""
-    async def generate():
-        response = await AsyncClient().chat(model='llama3.2:1B', stream=True, messages=request.messages)
-        async for chunk in response:
-            if chunk:
-                yield chunk.message.content.encode()
-    return StreamingResponse(generate(), media_type="text/plain")
-
-
-@app.post("/chat/{id}")
-def save_chat(id: uuid.UUID):
-    """Saves chat to db, this func should be called by the client after each response from /chat"""
-    print(id)
+app.include_router(users_router)
+app.include_router(chats_router)

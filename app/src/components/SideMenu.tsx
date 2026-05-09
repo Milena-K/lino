@@ -12,7 +12,7 @@ function SideMenu() {
   return (
     <div className="side-menu">
       <div className={"menu " + (showMenu ? "hide ": "")}>
-        side menu
+        <button className="btn">New chat</button>
       </div>
 
       <div className="btns">

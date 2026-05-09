@@ -19,6 +19,19 @@ function LoginForm() {
         }
     }
 
+    const handleLogOut = (e) => {
+        e.preventDefault()
+        if (window.Worker) {
+            worker.postMessage({ action: "logout", id: username })
+            worker.onmessage = function (e) {
+                if (e.data.printErr)
+                    console.log(e.data.printErr)
+                if (e.data.print)
+                    console.log(e.data.print)
+            };
+        }
+    }
+
     return (
         <div className="login">
             <form className="login-form">
@@ -26,6 +39,7 @@ function LoginForm() {
                 <input className="input-field" placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} />
                 <input className="input-field" type="text" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 <button className="submit-btn" onClick={handleLogin}>Log in</button>
+                <button className="submit-btn" onClick={handleLogOut}>Log out</button>
             </form>
         </div>
     )
