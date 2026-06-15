@@ -1,12 +1,15 @@
 import * as opaque from "@serenity-kit/opaque"
+import * as forge from "node-forge"
+// import hkdf from 'js-crypto-hkdf'
+import {RSA_algorithm,
+        wrapCryptoKey,
+        getKeyMaterial,
+        getKey,
+        unwrapPrivateKey,
+        bytesToHex,
+       } from "./crypto"
 
 var URL_BASE_STR = "http://localhost:8000/auth"
-var crypto_algorithm = {
-  name: "RSA-OAEP",
-  modulusLength: 4096,
-  publicExponent: new Uint8Array([1, 0, 1]),
-  hash: "SHA-256",
-}
 
 
 async function register(username, password) {
@@ -26,17 +29,34 @@ async function register(username, password) {
   })
   var registrationResponse = await response.json()
   var result = { clientRegistrationState, registrationResponse };
-  console.log("first pass")
+  console.log("test")
   return result
 }
 
 async function register_finish(username, password, clientRegistrationState, registrationResponse) {
-  const { registrationRecord } = opaque.client.finishRegistration({
+  const { exportKey, registrationRecord } = opaque.client.finishRegistration({
     clientRegistrationState,
     registrationResponse,
     password
   })
- await fetch(URL_BASE_STR + "/register_finish", {
+  const RSA_key = await crypto.subtle.generateKey(RSA_algorithm, true, ["encrypt", "decrypt"])
+  const RSA_priv_key = await crypto.subtle.exportKey("pkcs8", RSA_key.privateKey)
+  console.log("RSA")
+  console.log(RSA_priv_key)
+  console.log(password)
+  const RSA_pub_key = RSA_key.publicKey
+  // let { wrappedKey, salt, iv } = await wrapCryptoKey(exportKey, RSA_key.privateKey) // key, salt, iv
+  // wraps and encrypts a Forge private key and outputs it in PEM format
+  // TODO: convert RSA_priv_key to forge.pki.PrivateKey
+  const pem = forge.pki.encryptRsaPrivateKey(RSA_priv_key, password);
+
+  console.log("something")
+  console.log(pem)
+  const rsa_key = pem
+  // const rsa_key = bytesToHex(wrappedKey)
+  // salt = bytesToHex(salt)
+  // iv = bytesToHex(salt)
+  const result = await fetch(URL_BASE_STR + "/register_finish", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -46,15 +66,30 @@ async function register_finish(username, password, clientRegistrationState, regi
     body: JSON.stringify({
       username,
       registration_record: registrationRecord,
+      rsa_key,
+      salt,
+      iv
     })
   })
-
-
-
-
-
-  console.log("second pass")
-  // TODO: check for server response "User already exists"
+    console.log("----------------")
+    console.log("rsa_key")
+    console.log("----------------")
+    console.log(rsa_key)
+    console.log("----------------")
+    console.log("salt")
+    console.log("----------------")
+    console.log(salt)
+    console.log("----------------")
+    console.log("iv")
+    console.log("----------------")
+    console.log(iv)
+  if (result.status == 200) {
+  }
+  if (result.status != 200) {
+    // TODO: check for server response "User already exists"
+    console.error(result.status)
+    console.error(result.statusText)
+  }
 }
 
 async function login(username, password) {
@@ -109,19 +144,15 @@ async function login_finish(username, password, clientLoginState, loginResponse)
   })
 
   if (loginRequest.ok) {
-    let cryptoKeyPair = await crypto.subtle.generateKey(
-      crypto_algorithm,
-      false,
-      ["encrypt", "decrypt"],
-    )
-    let enc = new TextEncoder()
-    let enc_export_key = await crypto.subtle.encrypt(crypto_algorithm, cryptoKeyPair.publicKey, enc.encode(exportKey))
-    let enc_session_key = await crypto.subtle.encrypt(crypto_algorithm, cryptoKeyPair.publicKey, enc.encode(sessionKey))
-
-    // save to IndexedDB
-    addKey("masterKey", cryptoKeyPair)
-    addKey("exportKey", enc_export_key)
-    addKey("sessionKey", enc_session_key)
+    //TODO: get the RSAkey from the loginRequest
+    const userKey = loginRequest.body
+    const RSAKey = await unwrapPrivateKey(exportKey, userKey.RSAKey, userKey.salt, userKey.iv)
+    // derive AES key from session key
+    const keyMaterial = await getKeyMaterial(sessionKey)
+    const salt = crypto.getRandomValues(new Uint8Array(16))
+    const session_AES_key = await getKey(keyMaterial, salt)
+    addKey("RSAKey", RSAKey)
+    addKey("sessionAESKey", session_AES_key)
   }
 }
 
@@ -177,8 +208,9 @@ onmessage = async function (e) {
     try {
       let { clientLoginState, loginResponse } = await login(username, password)
       await login_finish(username, password, clientLoginState, loginResponse)
-    }catch {
-      console.error("The user is already logged in.")
+    }catch (error){
+      console.log(error)
+      // console.error("The user is already logged in.")
     }
   } else if (action == "logout") {
     console.log(this.indexedDB)

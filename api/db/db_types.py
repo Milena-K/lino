@@ -8,6 +8,9 @@ class User(BaseModel):
     user_id: int
     user_name: str
     registration_record: str
+    rsa_key: str
+    salt: str
+    iv: str
 
 class MessageJSON(BaseModel):
     role: Role

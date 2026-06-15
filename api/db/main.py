@@ -34,7 +34,10 @@ async def create_users_table():
     create table if not exists users (
         user_id SERIAL PRIMARY KEY,
         user_name VARCHAR(100) UNIQUE NOT NULL,
-        registration_record TEXT NOT NULL
+        registration_record TEXT NOT NULL,
+        rsa_key BYTEA NOT NULL,
+        salt BYTEA NOT NULL,
+        iv BYTEA NOT NULL
     )
     '''
     async with aconn:
@@ -107,17 +110,17 @@ async def create_chats_table():
 
 # USERS CRUD operations
 
-async def create_user(user_name: str, registration_record: str):
+async def create_user(user_name: str, registration_record: str, rsa_key: str, salt: str, iv: str):
     """Insert user record"""
     aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
     insert_query = '''
-    INSERT INTO users (user_name, registration_record)
-    VALUES (%s, %s)
+    INSERT INTO users (user_name, registration_record, rsa_key, salt, iv)
+    VALUES (%s, %s, %s, %s, %s)
     RETURNING user_id;
     '''
     async with aconn:
         async with aconn.cursor() as curr:
-            insert = await curr.execute(insert_query, (user_name, registration_record))
+            insert = await curr.execute(insert_query, (user_name, registration_record, rsa_key, salt, iv))
             result = await insert.fetchone()
             logging.info(f"User inserted with ID: {result}")
 
@@ -138,7 +141,7 @@ async def get_user(user_name: str) -> User | None:
     """Return user record"""
     aconn = await psycopg.AsyncConnection.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS)
     get_user_query = '''
-    SELECT user_id, user_name, registration_record
+    SELECT user_id, user_name, registration_record, rsa_key, salt, iv
     FROM users
     WHERE user_name = %s
     '''
@@ -151,7 +154,10 @@ async def get_user(user_name: str) -> User | None:
                 return User(
                     user_id=result[0],
                     user_name=result[1],
-                    registration_record=result[2]
+                    registration_record=result[2],
+                    rsa_key=result[3],
+                    salt=result[4],
+                    iv=result[5]
                 )
             else:
                 logging.info(f"The user {user_name} does not exist.")
@@ -329,7 +335,3 @@ if __name__ == "__main__":
     asyncio.run(create_login_records_table())
     asyncio.run(create_chats_table())
     asyncio.run(create_credential_secrets_table())
-    # asyncio.run(create_user("milena", "test"))
-    # chat = '{"model": "llama3.2:1B", "messages": [{"role": "user", "content":"What are peaches?"}, {"role": "assistant", "content":"Oranges are a fruit."}]}'
-    # asyncio.run(create_login_record(2, "anatha one", str(datetime.now())))
-    # asyncio.run(get_login_record(2))

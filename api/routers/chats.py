@@ -4,7 +4,6 @@ from db.db_types import MessageJSON as Message
 from pydantic import BaseModel
 from ollama import AsyncClient
 import db.main as db
-import db.db_types as MessageJSON
 from typing import List
 import uuid
 
@@ -19,9 +18,11 @@ router = APIRouter(
 )
 
 class PromptRequest(BaseModel):
-    messages: list[Message]
+    messages: List[Message]
 
-@router.post("/chat")
+
+@router.post("/")
+# async def chat_stream(request: PromptRequest):
 async def chat_stream(request: PromptRequest):
     """The user writes a prompt and receives a response back."""
     async def generate():
@@ -46,16 +47,16 @@ async def read_chat(username: str, chat_id: int, session_key: str):
     return chat
 
 # TODO improve this method
-@router.post("/chat/{user_id}")
-async def save_chat(user_id: int, chat_id: int,  messages: List[MessageJSON]):
-    """Saves chat to db, this func should be called by the client after each response from /chat"""
-    user_id = await db.get_user_id(username)
-    if user_id is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    if chat_id is None:
-        await db.create_chat(user_id, "New chat", messages)
+# @router.post("/chat/{user_id}")
+# async def save_chat(user_id: int, chat_id: int,  messages: MessageJSON):
+#     """Saves chat to db, this func should be called by the client after each response from /chat"""
+#     user_id = await db.get_user_id(username)
+#     if user_id is None:
+#         raise HTTPException(status_code=404, detail="User not found")
+#     if chat_id is None:
+#         await db.create_chat(user_id, "New chat", messages)
 
-    chat = await db.get_chat_by_id(user_id, chat_id)
-    if chat is None:
-        raise HTTPException(status_code=404, detail="Chat not found.")
-    await db.update_chat(user_id, chat_id, messages)
+#     chat = await db.get_chat_by_id(user_id, chat_id)
+#     if chat is None:
+#         raise HTTPException(status_code=404, detail="Chat not found.")
+#     await db.update_chat(user_id, chat_id, messages)

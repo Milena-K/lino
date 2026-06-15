@@ -3,16 +3,27 @@ import "./SideMenu.scss"
 import { SlArrowLeftCircle } from "react-icons/sl";
 import { RiBookLine } from "react-icons/ri";
 import { AiOutlineFile } from "react-icons/ai";
-import { ButtonContext } from "../Contexts";
+import { ButtonContext, MessagesContext, UserMessageContext, TitleContext } from "../Contexts.tsx";
+import { NavLink } from "react-router";
 
 function SideMenu() {
   const [showMenu, setShowMenu] = useState(true);
-  const [showKB, setShowKB] = useContext(ButtonContext)
+  const { showKB, setShowKB } = useContext(ButtonContext)
+  const { setMessages } = useContext(MessagesContext)
+  const { setTitle } = useContext(TitleContext)
+  const { setUserMessage } = useContext(UserMessageContext)
+
+  const clearChat = () => {
+    setMessages([])
+    setTitle("")
+    setUserMessage("")
+    console.log("cleared.")
+  }
 
   return (
     <div className="side-menu">
       <div className={"menu " + (showMenu ? "hide ": "")}>
-        <button className="btn">New chat</button>
+        <NavLink to="/"><button className="btn" onClick={clearChat}>New chat</button></NavLink>
       </div>
 
       <div className="btns">
