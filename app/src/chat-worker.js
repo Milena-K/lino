@@ -101,7 +101,8 @@ self.onmessage = (e) => {
   let action = e.data.action
   if (action == "getAssistantMessage") {
     let messages = e.data.data
+    // getAssistantResponse(messages)
     const encrypted_messages = encrypt_chat_to_LLM(messages)
-    // getAssistantResponse(encrypted_messages)
+    getAssistantResponse(encrypted_messages)
   }
 }

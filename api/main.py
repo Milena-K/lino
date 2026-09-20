@@ -1,8 +1,8 @@
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
-from routers.auth import router as auth_router
-from routers.users import router as users_router
-from routers.chats import router as chats_router
+from .routers.auth import router as auth_router
+from .routers.users import router as users_router
+from .routers.chats import router as chats_router
 
 app = FastAPI()
 origins = [

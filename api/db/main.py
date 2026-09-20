@@ -5,7 +5,7 @@ import asyncio
 import logging
 from dotenv import load_dotenv
 from pydantic import ValidationError
-from db_types import ChatJSON, User
+from .db_types import ChatJSON, User
 
 load_dotenv()
 
