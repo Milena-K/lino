@@ -20,7 +20,6 @@ cryptography==46.0.5
 dnspython==2.8.0
 docutils==0.22.4
 email-validator==2.3.0
-eventlet==0.41.0
 fastapi==0.135.0
 fastapi-cli==0.0.24
 fastapi-cloud-cli==0.14.0

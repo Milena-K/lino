@@ -6,7 +6,7 @@ from .routers.chats import router as chats_router
 
 app = FastAPI()
 origins = [
-    # "*",
+    "*",
     "http://localhost:5173",
 ]
 
@@ -15,7 +15,7 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["POST", "GET"],
-    allow_headers=["*"],
+    allow_headers=["*", "http://localhost:5173"],
 )
 
 app.include_router(auth_router)

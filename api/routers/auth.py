@@ -5,12 +5,15 @@ from pyrate_limiter import Duration, Limiter, Rate
 from fastapi_limiter.depends import RateLimiter
 from dotenv import load_dotenv
 from datetime import datetime
+
 from api.db.db_types import User
 import os
 import json
 import base64
 import opaquepy
+
 import api.db.main as db
+from opaquepy import create_setup
 
 load_dotenv()
 
@@ -35,9 +38,9 @@ class RegistrationRequest(BaseModel):
 class RegistrationFinishRequest(BaseModel):
     username: str
     registration_record: str
-    rsa_key: str
-    salt: str
-    iv: str
+    # rsa_key: str
+    # salt: str
+    # iv: str
 
 
 class LoginRequest(BaseModel):
@@ -66,18 +69,18 @@ async def register(request: RegistrationRequest) -> str:
 @router.post("/register_finish")
 async def register_finish(request: RegistrationFinishRequest):
     user = await db.get_user(request.username)
-    rsa_key = request.rsa_key
-    salt = request.salt
-    iv = request.iv
-    print("rsa_key")
-    print(rsa_key)
-    print("salt")
-    print(salt)
-    print("iv")
-    print(iv)
+    # rsa_key = request.rsa_key
+    # salt = request.salt
+    # iv = request.iv
+    # print("rsa_key")
+    # print(rsa_key)
+    # print("salt")
+    # print(salt)
+    # print("iv")
+    # print(iv)
     if user is None:
         record = opaquepy.register_finish(request.registration_record)
-        await db.create_user(request.username, record, rsa_key, salt, iv)
+        await db.create_user(request.username, record)
     # send a 200 even if user does exist to avoid leaking
     # the information if the user exists or not
 
@@ -120,12 +123,16 @@ async def login_finish(request: LoginFinishRequest):
     await db.delete_credential_secret(request.username)
     return {
         "session_key": session_key,
-        "rsa_key": user.rsa_key,
-        "salt": user.salt,
-        "iv": user.iv,
+        # "rsa_key": user.rsa_key,
+        # "salt": user.salt,
+        # "iv": user.iv,
     }
 
 
 @router.post("/logout/{username}")
 async def sign_out(username: str):
     await db.delete_login_record(username)
+
+
+if __name__ == "__main__":
+    print(create_setup())

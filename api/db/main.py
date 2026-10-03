@@ -38,10 +38,7 @@ async def create_users_table():
     create table if not exists users (
         user_id SERIAL PRIMARY KEY,
         user_name VARCHAR(100) UNIQUE NOT NULL,
-        registration_record TEXT NOT NULL,
-        rsa_key BYTEA NOT NULL,
-        salt BYTEA NOT NULL,
-        iv BYTEA NOT NULL
+        registration_record TEXT NOT NULL
     )
     """
     async with aconn:
@@ -117,21 +114,17 @@ async def create_chats_table():
 # USERS CRUD operations
 
 
-async def create_user(
-    user_name: str, registration_record: str, rsa_key: str, salt: str, iv: str
-):
+async def create_user(user_name: str, registration_record: str):
     """Insert user record"""
     aconn = await psycopg.AsyncConnection.connect(conninfo)
     insert_query = """
-    INSERT INTO users (user_name, registration_record, rsa_key, salt, iv)
-    VALUES (%s, %s, %s, %s, %s)
+    INSERT INTO users (user_name, registration_record)
+    VALUES (%s, %s)
     RETURNING user_id;
     """
     async with aconn:
         async with aconn.cursor() as curr:
-            insert = await curr.execute(
-                insert_query, (user_name, registration_record, rsa_key, salt, iv)
-            )
+            insert = await curr.execute(insert_query, (user_name, registration_record))
             result = await insert.fetchone()
             logging.info(f"User inserted with ID: {result}")
 
@@ -154,7 +147,7 @@ async def get_user(user_name: str) -> User | None:
     """Return user record"""
     aconn = await psycopg.AsyncConnection.connect(conninfo)
     get_user_query = """
-    SELECT user_id, user_name, registration_record, rsa_key, salt, iv
+    SELECT user_id, user_name, registration_record
     FROM users
     WHERE user_name = %s
     """
@@ -168,9 +161,6 @@ async def get_user(user_name: str) -> User | None:
                     user_id=result[0],
                     user_name=result[1],
                     registration_record=result[2],
-                    rsa_key=result[3],
-                    salt=result[4],
-                    iv=result[5],
                 )
             else:
                 logging.info(f"The user {user_name} does not exist.")

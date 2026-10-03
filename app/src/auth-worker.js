@@ -33,26 +33,31 @@ async function register(username, password) {
   return result
 }
 
-async function register_finish(username, password, clientRegistrationState, registrationResponse) {
+async function register_finish(username,
+                               password,
+                               clientRegistrationState,
+                               registrationResponse) {
   const { exportKey, registrationRecord } = opaque.client.finishRegistration({
     clientRegistrationState,
     registrationResponse,
     password
   })
-  const RSA_key = await crypto.subtle.generateKey(RSA_algorithm, true, ["encrypt", "decrypt"])
-  const RSA_priv_key = await crypto.subtle.exportKey("pkcs8", RSA_key.privateKey)
-  console.log("RSA")
-  console.log(RSA_priv_key)
   console.log(password)
-  const RSA_pub_key = RSA_key.publicKey
+
+  // const RSA_key = await crypto.subtle.generateKey(RSA_algorithm, true, ["encrypt", "decrypt"])
+  // const RSA_priv_key = await crypto.subtle.exportKey("pkcs8", RSA_key.privateKey)
+  // console.log("RSA")
+  // console.log(RSA_priv_key)
+   
+  // const RSA_pub_key = RSA_key.publicKey
   // let { wrappedKey, salt, iv } = await wrapCryptoKey(exportKey, RSA_key.privateKey) // key, salt, iv
   // wraps and encrypts a Forge private key and outputs it in PEM format
   // TODO: convert RSA_priv_key to forge.pki.PrivateKey
-  const pem = forge.pki.encryptRsaPrivateKey(RSA_priv_key, password);
+  // const pem = forge.pki.encryptRsaPrivateKey(RSA_priv_key, password);
 
-  console.log("something")
-  console.log(pem)
-  const rsa_key = pem
+  // console.log("something")
+  // console.log(pem)
+  // const rsa_key = pem
   // const rsa_key = bytesToHex(wrappedKey)
   // salt = bytesToHex(salt)
   // iv = bytesToHex(salt)
@@ -66,23 +71,23 @@ async function register_finish(username, password, clientRegistrationState, regi
     body: JSON.stringify({
       username,
       registration_record: registrationRecord,
-      rsa_key,
-      salt,
-      iv
+      // rsa_key,
+      // salt,
+      // iv
     })
   })
-    console.log("----------------")
-    console.log("rsa_key")
-    console.log("----------------")
-    console.log(rsa_key)
-    console.log("----------------")
-    console.log("salt")
-    console.log("----------------")
-    console.log(salt)
-    console.log("----------------")
-    console.log("iv")
-    console.log("----------------")
-    console.log(iv)
+    // console.log("----------------")
+    // console.log("rsa_key")
+    // console.log("----------------")
+    // console.log(rsa_key)
+    // console.log("----------------")
+    // console.log("salt")
+    // console.log("----------------")
+    // console.log(salt)
+    // console.log("----------------")
+    // console.log("iv")
+    // console.log("----------------")
+    // console.log(iv)
   if (result.status == 200) {
   }
   if (result.status != 200) {

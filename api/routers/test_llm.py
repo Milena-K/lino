@@ -1,13 +1,53 @@
-from openai import OpenAI
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
+from api.db.db_types import MessageJSON as Message
+from pydantic import BaseModel
 
-BASE_URL = "http://localhost:8080/v1"
+from ollama import AsyncClient
+import api.db.main as db
+from typing import List
+import uuid
 
-client = OpenAI(base_url=BASE_URL, api_key="not-needed")
+BASE_URL = "http://localhost:11434"
 
-response = client.chat.completions.create(
-    model="local",
-    messages=[{"role": "user", "content": "Explain Docker in one sentence."}],
-    temperature=0.7,
+router = APIRouter(
+    prefix="/llm",
+    tags=[""],
+    # dependencies=[Depends(get_token_header)],
+    responses={404: {"description": "Not found"}},
 )
 
-print(response.choices[0].message.content)
+
+class PromptRequest(BaseModel):
+    messages: List[Message]
+
+
+@router.post("/")
+# async def chat_stream(request: PromptRequest):
+async def chat_stream(request: PromptRequest):
+    """The user writes a prompt and receives a response back."""
+
+    async def generate():
+        response = await AsyncClient().chat(
+            model="llama3.2:1B", stream=True, messages=request.messages
+        )
+        async for chunk in response:
+            if chunk:
+                yield chunk.message.content.encode()
+
+    return StreamingResponse(generate(), media_type="text/plain")
+
+
+@router.get("/{username}/{chat_id}")
+async def read_chat(username: str, chat_id: int, session_key: str):
+    # TODO check maybe also if session key matches the latest session key
+    user_id = await db.get_user_id(username)
+    if user_id is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_session_key = await db.get_login_record
+
+    chat = await db.get_chat_by_id(user_id, chat_id)
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Chat not found.")
+    return chat
