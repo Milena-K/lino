@@ -13,6 +13,7 @@ function StartChat(props: StartChatProps) {
     /* const { setMessages } = useContext(MessagesContext); */
     /* const { userMessage, setUserMessage } = useContext(UserMessageContext); */
   const [userMessage, setUserMessage] = useState("");
+  const worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
 
   useEffect(() => {
     resizeTextarea();
@@ -20,6 +21,7 @@ function StartChat(props: StartChatProps) {
 
   // event listeners
   useEffect(() => {
+
     window.addEventListener('resize', resizeTextarea)
     window.addEventListener('load', resizeTextarea)
 

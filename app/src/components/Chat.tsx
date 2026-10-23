@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { type Message } from '../types';
 import './Chat.scss';
-import { useParams } // Load Web Workers
+import { useParams } 
 from 'react-router';
+import * as openpgp from 'openpgp';
+// Load Web Workers
+const test_worker = new Worker(new URL("../test-worker.js", import.meta.url), {type: "module"});
+const worker = new Worker(new URL("../chat-worker.js", import.meta.url), {type: "module"});
 
 type ChatProps = {
     firstMessage: string,
@@ -16,7 +20,7 @@ function Chat(props: ChatProps) {
   const [title, setTitle] = useState<string>("");
   const [userMessage, setUserMessage] = useState<string>("");
   const [done, setDone] = useState<boolean>(true);
-  const worker = new Worker(new URL("../chat-worker.js", import.meta.url), {type: "module"});
+  // const auth_worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
 
   useEffect(() => {
     if (done) {
@@ -84,7 +88,33 @@ function Chat(props: ChatProps) {
     }
 
     if(event.key === 'Enter' && !event.shiftKey && userMessage) {
-      sendMessages(userMessage)
+      if( test_worker ) {
+        console.log(userMessage)
+        test_worker.postMessage({action: "save", secret: userMessage})
+        test_worker.onerror = (e) => {
+          console.log(e)
+          alert(e.message)
+        }
+      }
+
+      
+      // TODO: uncomment this
+      // sendMessages(userMessage)
+        // if( auth_worker) {
+        //     auth_worker.postMessage({ action: "saveChat", secret: userMessage})
+        //     console.log("message posted to worker.")
+        //     auth_worker.onmessage = (e) => {
+        //       console.log("Worker: ", e.data)
+        //     }
+        // } else {
+        //   console.log("auth_worker not found")
+        // }
+        // worker.onmessage = (event) => {
+        //     // TODO check if event.data has "done": true,
+        //     // if yes, then set flag done to true and save chat to db
+        //     // setReply(event.data);
+        //     console.log(event.data)
+        // }
     }
   }
 

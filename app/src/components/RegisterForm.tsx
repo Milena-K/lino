@@ -13,6 +13,7 @@ function RegisterForm() {
         if (window.Worker) {
             worker.postMessage({ action: "register", id: username, pw: password })
             worker.onmessage = function (e) {
+              
                 if (e.data.printErr)
                     console.log(e.data.printErr)
                 if (e.data.print)
