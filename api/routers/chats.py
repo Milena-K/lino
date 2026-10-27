@@ -75,7 +75,6 @@ class EncryptedRequest(BaseModel):
     message: str
 
 
-# TODO encrypt and decrypt with key
 def encrypt_message(message: str) -> str:
     """Encrypt a string, return armored ciphertext."""
     encrypted = gpg.encrypt(
@@ -105,8 +104,6 @@ def decrypt_message(ciphertext: str) -> str:
     return str(decrypted)
 
 
-# TODO: write a function in one of the components that will call /saveChat
-# from auth worker and then send the message to the server.
 @router.post("/save")
 async def save(req: EncryptedRequest):
     # print(gpg.list_keys(secret=True)[1]["fingerprint"])

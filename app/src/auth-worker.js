@@ -167,8 +167,7 @@ async function login_finish(username, password, clientLoginState, loginResponse)
 
 function createDB () {
   const dbName = "SecureDB";
-  const dbVersion = 1;
-  const request = indexedDB.open(dbName, dbVersion)
+  const request = indexedDB.open(dbName)
   request.onupgradeneeded = (event) => {
     const db = event.target.result;
     if (!db.objectStoreNames.contains("keys")) {
@@ -186,7 +185,7 @@ function createDB () {
 }
 
 function addKey (keyName, keyValue) {
-  const request = indexedDB.open("SecureDB", 1);
+  const request = indexedDB.open("SecureDB");
   request.onsuccess = (event) => {
     const db = event.target.result
     const transaction = db.transaction("keys", "readwrite")
