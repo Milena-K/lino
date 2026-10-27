@@ -20,9 +20,11 @@ router = APIRouter(
 )
 
 gpg = gnupg.GPG()
+BASE = Path(__file__).resolve().parent
+key_path = (BASE / ".." / "llm" / "keys" / "private-backup.asc").resolve()
 # key_path = os.getenv("PGP_KEY_PATH", "./llm/keys/private-backup.asc")
 priv_key = gpg.import_keys(
-    Path("/home/milena/Documents/Uni/bachelors/lino/api/llm/keys/private-backup.asc")
+    key_path
     .read_text()
     .strip()
 )
