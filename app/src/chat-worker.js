@@ -1,3 +1,5 @@
+import { checkChat, ensureChatsStore } from "./indexedDB-lib"
+import { generateAesKey } from "./crypto-lib"
 var URL_BASE_STR = "http://localhost:8000/chat"
 var crypto_algorithm = {
   name: "RSA-OAEP",
@@ -6,103 +8,80 @@ var crypto_algorithm = {
   hash: "SHA-256",
 }
 
+async function createChat(message, chat_uuid) {
+    const db = await ensureChatsStore()
+    const tx = db.transaction("chats", "readwrite")
+    tx.objectStore("chats").put({
+        chat_uuid,
+        messages: [message],
+        aes_key: null, //generateAesKey()
+    })
 
-// async function getItemFromStore(key_name) {
-  // const db = await open
-  // TODO maybe use a lib for index db
-// }
-let db;
-const db_request = indexedDB.open("SecureDB");
-db_request.onerror = (event) => {
-  console.error("IndexDB could not open.")
-  console.error(`Database error: ${event.target.error?.message}`)
-}
-db_request.onsuccess = (event) => {
-  db = event.target.result;
+    await new Promise((res, rej)) => {
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error)
+    }
+
+    console.log("Stores in SecureDB:", [...db.objectStoreNames])
+    db.close();
 }
 
-// function getItemFromStore(key_name) {
-//     let master_key, enc_export_key;
-//     const objectStore = db.transaction("keys").objectStore("keys")
-//     const request_mas = objectStore.get("masterKey")
-//     const request_exp = objectStore.get("exportKey")
-//     request_exp.onsuccess = () => {
-//       master_key = request_mas.result.keyValue
-//       console.log("master key:")
-//       console.log(master_key)
-//       request_exp.onsuccess = () => {
-//         enc_export_key = request_exp.result.keyValue
-//         console.log("enc export key:")
-//         console.log(enc_export_key)
-//       }
+// async function getAESKey(chat_uuid) {
+//     // check indexedDB if chat is stored and AES key present
+//     var result = await checkChat(chat_uuid)
+//     if (!result.chatFound) { // if chat doesn't exists
+//         return result
+//     } else { // chat does exist 
+//         // TODO get AES key and encrypt it then ship it
 //     }
+
 // }
 
-async function encrypt_chat_to_LLM(new_messages) {
-    let master_key, enc_export_key;
-    const objectStore = db.transaction("keys").objectStore("keys")
-    const request_mas = objectStore.get("masterKey")
-    const request_exp = objectStore.get("exportKey")
-    request_mas.onsuccess = () => {
-      master_key = request_mas.result.keyValue
-    }
-    request_exp.onsuccess = async () => {
-      enc_export_key = request_exp.result.keyValue
-      console.log("master key:")
-      console.log(master_key)
-      const export_key = await crypto.subtle.decrypt(crypto_algorithm, master_key.privateKey, enc_export_key)
+// async function encryptChatToLLM(messages, chat_uuid) {
+//     return null 
+// }
 
-      console.log("export key:")
-      console.log(export_key)
-      // const aes_key = crypto.subtle.generateKey(
-      //   {
-      //     name: "AES-GCM",
-      //     length: 256,
-      //   },
-      //   true,
-      //   ["encrypt", "decrypt"]
-      // )
+// async function getAssistantResponse(encrypted_messages) {
+//     return null
+// }
 
-      // const enc_messages = await crypto
-    }
-  return null;
-}
+// async function saveChatDB(messages) {
+//     console.log("TODO saving chats.")
+//     // TODO encrypt chat
+//     // TODO send (chat, key) to fastapi endpoint chats/save
+// };
 
-async function getAssistantResponse (enc_messages) {
-  const res = await fetch(URL_BASE_STR, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": ["http://localhost:8000/"],
-      "Access-Control-Allow-Credentials": "false", // TODO made a change here
-    },
-    body: JSON.stringify({ "messages": enc_messages })
-  })
-
-  if (res.status != 200) {
-    console.log(res.status)
-    console.log(res)
-  }
-  const reader = res.body?.getReader();
-  if (!reader) return;
-  const decoder = new TextDecoder();
-  let out = '';
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    // TODO this value should be encoded, so first decode it.
-    out += decoder.decode(value)
-    self.postMessage(out)
-  }
-  return out
-}
-
-self.onmessage = (e) => {
+onmessage = async (e) => {
   let action = e.data.action
-  if (action == "getAssistantMessage") {
-    let messages = e.data.data
-    // getAssistantResponse(messages)
-    const encrypted_messages = encrypt_chat_to_LLM(messages)
-    getAssistantResponse(encrypted_messages)
+  let messages = e.data.messages
+  let chat_uuid = e.data.chat_uuid
+  if (action == "createChat") {
+      await createChat(messages, chat_uuid) // TODO find where bug
+      self.postMessage("chat created")
   }
+  // else if (action == "getAssistantMessage") {
+  //   const encrypted_messages = await encryptChatToLLM(messages, chat_uuid)
+  //   self.postMessage(JSON.stringify(encrypted_messages))
+  //   // const result = await getAssistantResponse(encrypted_messages)
+  // } else if (action == "save") {
+  //     if (messages) {
+  //       saveChatDB(messages)
+  //     }
+  // } else if (action == "getChat") {
+  //     // This should be called after opening /chat/chat_uuid (from button in sidemenu or from directly typing in URL)
+  //     // TODO call API to request chat_uuid
+  //     // TODO save chat to IndexedDB
+  // }
+
 }
+
+// Once a chat is opened new or old it should either:
+// old: call fastapi endpoint to check if it is stored in DB, pull it and save to indexedDB
+// new: create new one with a single user message and generate AES chat key
+// invalid uuid: check with fastapi and if chat is not found, redirect to /new page.
+// 
+// * Send encrypted messages to LLM service
+// - [x] generate AES chat key
+// - [ ] encrypt chat with AES chat key
+// - [ ] encrypt AES chat key with LLM public key
+// - [ ] send (enc_chat, enc_aes) to LLM service

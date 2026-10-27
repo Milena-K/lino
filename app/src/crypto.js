@@ -9,7 +9,7 @@ Get some key material to use as input to the deriveKey method.
 The key material is the export key, instead of the user password.
 */
 export function getKeyMaterial(material) {
-  const enc = new TextEncoder()
+  const enc = new TextEncod er()
   return crypto.subtle.importKey(
     "raw",
     enc.encode(material),
@@ -115,4 +115,52 @@ export async function unwrapPrivateKey(secret, wrappedKey, salt, ivBytes) {
     false,
     ["encrypt", "decrypt"]
   )
+}
+
+/* this function should be used to derive AES key from OPAQUE export key */
+export async function deriveAesKey(bytes, info) {
+    const baseKey = await crypto.subtle.import(
+        "raw",
+        bytes,
+        "HKDF",
+        false,
+        ["deriveKey"]
+    );
+    return crypto.subtle.deriveKey(
+        {
+            name: "HKDF",
+            hash: "SHA-256",
+            salt: new Uint8Array(0), // no salt
+        },
+        baseKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+    )
+}
+
+/* function for wrapping the PGP private key */
+export async function encryptAes(key, plaintext) {
+    const iv = crypto.getRandomValues(new Uint8Array(12))
+    const ct = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        plaintext
+    )
+    const out = new Uint8Array(iv.length + ct.byteLength)
+    out.set(iv, 0)
+    out.set(new Uint8Array(ct), iv.length)
+    return out;
+}
+
+export async function decryptAes(key, blob) {
+    const iv = blob.slice(0,12)
+    const ct = blob.slice(12)
+    return new Uint8Array(
+        await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv },
+            key,
+            ct
+        )
+    )
 }

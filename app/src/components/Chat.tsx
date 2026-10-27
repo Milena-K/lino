@@ -5,8 +5,8 @@ import { useParams }
 from 'react-router';
 import * as openpgp from 'openpgp';
 // Load Web Workers
-const test_worker = new Worker(new URL("../test-worker.js", import.meta.url), {type: "module"});
-const worker = new Worker(new URL("../chat-worker.js", import.meta.url), {type: "module"});
+const chat_worker = new Worker(new URL("../chat-worker.js", import.meta.url), {type: "module"});
+// const auth_worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
 
 type ChatProps = {
     firstMessage: string,
@@ -19,15 +19,14 @@ function Chat(props: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [title, setTitle] = useState<string>("");
   const [userMessage, setUserMessage] = useState<string>("");
-  const [done, setDone] = useState<boolean>(true);
-  // const auth_worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
+  const [save, setSave] = useState<boolean>(false);
 
   useEffect(() => {
-    if (done) {
-      // TODO save chat to db
+    if(save) {
+      saveChat();
+      setSave(false)
     }
-
-  }, [done])
+  }, [save])
 
   useEffect(() => {
     resizeTextarea();
@@ -48,21 +47,24 @@ function Chat(props: ChatProps) {
   }, [])
 
   const getAssistantResponse = (new_messages: Message[]) => {
-    if(worker) {
-      worker.postMessage({ action: "getAssistantMessage", data: new_messages })
+    if(chat_worker) {
+      chat_worker.postMessage({
+        action: "getAssistantMessage",
+        messages: new_messages,
+        chat_uuid: chat_uuid,
+      })
     }
-    worker.onmessage = (event) => {
-      // TODO check if event.data has "done": true,
-      // if yes, then set flag done to true and save chat to db
+    chat_worker.onmessage = (event) => {
       setReply(event.data);
-      console.log(event.data)
+      setSave(true);
+      console.log(event.data);
     }
   }
 
-  const sendMessages = (message: string) => {
+  const sendMessages = () => {
       const user_message: Message = {
         "role": "user",
-        "content": message,
+        "content": userMessage,
       }
       const assistant_message: Message = {
         "role": "assistant",
@@ -78,7 +80,18 @@ function Chat(props: ChatProps) {
       setReply("")
       setUserMessage("")
 
-      getAssistantResponse(new_messages)
+    getAssistantResponse(new_messages)
+  }
+
+  const saveChat = () => {
+    if( chat_worker ) {
+      console.log(userMessage)
+      chat_worker.postMessage({action: "save", messages: userMessage})
+      chat_worker.onerror = (e) => {
+        console.log(e)
+        alert(e.message)
+      }
+    }
   }
 
   const handleSubmit = (event: KeyboardEvent) => {
@@ -88,33 +101,30 @@ function Chat(props: ChatProps) {
     }
 
     if(event.key === 'Enter' && !event.shiftKey && userMessage) {
-      if( test_worker ) {
-        console.log(userMessage)
-        test_worker.postMessage({action: "save", secret: userMessage})
-        test_worker.onerror = (e) => {
-          console.log(e)
-          alert(e.message)
+        if(chat_worker) {
+          if (messages.length == 0) {
+            const user_message: Message = {
+                "role": "user",
+                "content": userMessage,
+            }
+            let data = {
+              action: "createChat",
+              messages: [user_message],
+              chat_uuid: chat_uuid,
+            }
+            chat_worker.postMessage(data)
+            chat_worker.onmessage = (event) => {
+              console.log(event.data);
+              // setMessages([user_message])  
+            }
+            chat_worker.onerror = (e) => {
+              console.log(e)
+            }
+          } 
+          // TODO uncomment this
+          // getAssistantResponse(messages) // Note messages might not be updated with latest data at this point
+          // sendMessages()
         }
-      }
-
-      
-      // TODO: uncomment this
-      // sendMessages(userMessage)
-        // if( auth_worker) {
-        //     auth_worker.postMessage({ action: "saveChat", secret: userMessage})
-        //     console.log("message posted to worker.")
-        //     auth_worker.onmessage = (e) => {
-        //       console.log("Worker: ", e.data)
-        //     }
-        // } else {
-        //   console.log("auth_worker not found")
-        // }
-        // worker.onmessage = (event) => {
-        //     // TODO check if event.data has "done": true,
-        //     // if yes, then set flag done to true and save chat to db
-        //     // setReply(event.data);
-        //     console.log(event.data)
-        // }
     }
   }
 
