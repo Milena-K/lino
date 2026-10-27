@@ -1,4 +1,5 @@
 import * as openpgp from 'openpgp';
+import { checkChat } from './indexedDB-lib';
 
 /* use this function to generate the master key */
 export async function generatePgpKey({name, email, passpharase = ''}) {
@@ -75,3 +76,39 @@ export async function decryptAes(key, blob) {
         )
     )
 }
+
+
+
+var URL_BASE_STR = "http://localhost:8000/chat"
+var crypto_algorithm = {
+  name: "RSA-OAEP",
+  modulusLength: 4096,
+  publicExponent: new Uint8Array([1, 0, 1]),
+  hash: "SHA-256",
+}
+
+
+async function getAESKey(chat_uuid) {
+    // check indexedDB if chat is stored and AES key present
+    var result = await checkChat(chat_uuid)
+    if (!result.chatFound) { // if chat doesn't exists
+        return result
+    } else { // chat does exist 
+        // TODO get AES key and encrypt it then ship it
+        return null
+    }
+}
+
+// async function encryptChatToLLM(messages, chat_uuid) {
+//     return null 
+// }
+
+// async function getAssistantResponse(encrypted_messages) {
+//     return null
+// }
+
+// async function saveChatDB(messages) {
+//     console.log("TODO saving chats.")
+//     // TODO encrypt chat
+//     // TODO send (chat, key) to fastapi endpoint chats/save
+// };

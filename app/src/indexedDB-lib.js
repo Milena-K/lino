@@ -4,7 +4,7 @@ const promisify = req =>
           req.onerror = () => reject(req.error)
       })
 
-export async function openExistingDB(db_name = 'SecureDB') {
+export async function openDB(db_name = 'SecureDB') {
     // check if the DB exists
     if (indexedDB.databases) {
         const dbs = await indexedDB.databases()
@@ -29,7 +29,7 @@ export async function openExistingDB(db_name = 'SecureDB') {
 }
 
 export async function checkChat(chatUuid) {
-    const db = await openExistingDB('SecureDB')
+    const db = await openDB()
     if (!db) return { dbExists: false }
 
     try {
@@ -93,4 +93,22 @@ export async function ensureChatsStore(dbName = "SecureDB") {
     return openDb(dbName, nextVersion, upgradeDb => {
         upgradeDb.createObjectStore("chats", {keyPath: "chat_uuid"})
     })
+}
+
+async function createChat(chat, chat_uuid) {
+    const db = await ensureChatsStore()
+    const tx = db.transaction("chats", "readwrite")
+    tx.objectStore("chats").put({
+        chat_uuid,
+        messages: chat,
+        aes_key: null, //generateAesKey()
+    })
+
+    await new Promise((res, rej) => {
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error)
+    })
+
+    console.log("Stores in SecureDB:", [...db.objectStoreNames])
+    db.close();
 }
