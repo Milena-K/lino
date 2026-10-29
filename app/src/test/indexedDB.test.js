@@ -1,12 +1,25 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import 'fake-indexeddb/auto'; // must come before db.js uses indexedDB
-import { openDb, createChat } from '../indexedDB-lib';
+import { openDB, createChat, checkChat } from '../indexedDB-lib';
+
+const STORE = 'chats'
+
+async function getAllChatsFromDB() {
+    const db = await openDB()
+    const chats = await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readonly')
+        const req = tx.objectStore(STORE).getAll()
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = () => reject(req.error)
+    })
+    return chats
+}
 
 describe('IndexedDB transactions', () => {
   let db;
 
   beforeEach(async () => {
-    db = await openDb();
+    db = await openDB();
   });
 
   afterEach(async () => db?.close());
@@ -14,24 +27,25 @@ describe('IndexedDB transactions', () => {
   it('creates the object store - chats', async () => {
     let message = {
         "role": "user",
-        "message": "testing"
+        "message": "testing",
     }
-    await createChat([message], "id-123")
-    expect(db.objectStoreNames.contains('chats')).toBe(true);
+    const chat = await createChat([message], "id-123")
+    const stored = await getAllChatsFromDB()
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toEqual(chat);
   });
 
-//   it('commits a readwrite transaction', async () => {
-//     await expect(putItem(db, { id: 1, name: 'alpha' })).resolves.toBe(true);
-//   });
 
-//   it('persists the written data', async () => {
-//     await putItem(db, { id: 2, name: 'beta' });
-//     const tx = db.transaction('items', 'readonly');
-//     const req = tx.objectStore('items').get(2);
-//     const result = await new Promise((resolve, reject) => {
-//       req.onsuccess = () => resolve(req.result);
-//       req.onerror = () => reject(req.error);
-//     });
-//     expect(result).toEqual({ id: 2, name: 'beta' });
-//   });
+  it('finds the correct chat', async () => {
+    let message = {
+        "role": "user",
+        "message": "testing",
+    }
+    const uuid = "id-123"
+    const chatA = await createChat([message], uuid)
+    const chatB = await checkChat(uuid)
+      console.log(chatB)
+    expect(chatB.uuid).toEqual(uuid)
+  });
+
 });

@@ -5,7 +5,7 @@ const promisify = req =>
       })
 
 export async function checkChat(chatUuid) {
-    const db = await openDb()
+    const db = await openDB()
     if (!db) return { dbExists: false }
 
     try {
@@ -38,6 +38,7 @@ export async function checkChat(chatUuid) {
             chatFound: true,
             hasAesKey: key != null,
             keyType: key != null ? Object.prototype.toString.call(key) : null,
+            uuid: record["chat_uuid"],
             recordFields: Object.keys(record)
         }
     } finally {
@@ -45,7 +46,7 @@ export async function checkChat(chatUuid) {
     }
 }
 
-export function openDb(name="SecureDB", version=null, onUpgrade=null) {
+export function openDB(name="SecureDB", version=null, onUpgrade=null) {
     return new Promise((resolve, reject) => {
         const req = version ? indexedDB.open(name, version) : indexedDB.open(name)
         if (onUpgrade) req.onupgradeneeded = () => onUpgrade(req.result)
@@ -60,31 +61,33 @@ export function openDb(name="SecureDB", version=null, onUpgrade=null) {
 }
 
 export async function ensureChatsStore(dbName = "SecureDB") {
-    const db = await openDb(dbName)
+    const db = await openDB(dbName)
     if (db.objectStoreNames.contains("chats")) return db;
 
     const nextVersion = db.version + 1
     db.close();
 
-    return openDb(dbName, nextVersion, upgradeDb => {
+    return openDB(dbName, nextVersion, upgradeDb => {
         upgradeDb.createObjectStore("chats", {keyPath: "chat_uuid"})
     })
 }
 
-export async function createChat(chat, chat_uuid) {
+export async function createChat(messages, chat_uuid) {
     const db = await ensureChatsStore()
     const tx = db.transaction("chats", "readwrite")
-    tx.objectStore("chats").put({
+    const chat = {
         chat_uuid,
-        messages: chat,
+        messages,
         aes_key: null, //generateAesKey()
-    })
+    }
+    tx.objectStore("chats").put(chat)
 
     await new Promise((res, rej) => {
-        tx.oncomplete = res;
+        tx.oncomplete = res();
         tx.onerror = () => rej(tx.error)
     })
 
     console.log("Stores in SecureDB:", [...db.objectStoreNames])
     db.close();
+    return chat
 }
