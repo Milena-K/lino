@@ -4,32 +4,8 @@ const promisify = req =>
           req.onerror = () => reject(req.error)
       })
 
-export async function openDB(db_name = 'SecureDB') {
-    // check if the DB exists
-    if (indexedDB.databases) {
-        const dbs = await indexedDB.databases()
-        if (!dbs.some(d => d.name === db_name)) return null
-    }
-
-    // open DB without creating it
-    return new Promise((resolve, reject) => {
-        let created = false
-        const req = indexedDB.open(db_name)
-        req.onupgradeneeded = () => {
-            created = true
-            req.transaction.abort()
-        }
-        req.onsuccess = () => resolve(req.result)
-        req.onerror = () => {
-            if (created) resolve(null)
-            else reject(req.error)
-        }
-        req.onblocked = () => reject(new Error ("DB open blocked"))
-    })
-}
-
 export async function checkChat(chatUuid) {
-    const db = await openDB()
+    const db = await openDb()
     if (!db) return { dbExists: false }
 
     try {
@@ -69,7 +45,7 @@ export async function checkChat(chatUuid) {
     }
 }
 
-function openDb(name, version, onUpgrade) {
+export function openDb(name="SecureDB", version=null, onUpgrade=null) {
     return new Promise((resolve, reject) => {
         const req = version ? indexedDB.open(name, version) : indexedDB.open(name)
         if (onUpgrade) req.onupgradeneeded = () => onUpgrade(req.result)
@@ -84,7 +60,7 @@ function openDb(name, version, onUpgrade) {
 }
 
 export async function ensureChatsStore(dbName = "SecureDB") {
-    const db = await openDb(name)
+    const db = await openDb(dbName)
     if (db.objectStoreNames.contains("chats")) return db;
 
     const nextVersion = db.version + 1
@@ -95,7 +71,7 @@ export async function ensureChatsStore(dbName = "SecureDB") {
     })
 }
 
-async function createChat(chat, chat_uuid) {
+export async function createChat(chat, chat_uuid) {
     const db = await ensureChatsStore()
     const tx = db.transaction("chats", "readwrite")
     tx.objectStore("chats").put({

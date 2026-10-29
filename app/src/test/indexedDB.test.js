@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import 'fake-indexeddb/auto'; // must come before db.js uses indexedDB
-import { openDB, createChat } from '../src/indexedDB-lib';
+import { openDb, createChat } from '../indexedDB-lib';
 
 describe('IndexedDB transactions', () => {
   let db;
 
   beforeEach(async () => {
-    db = await openDB();
+    db = await openDb();
   });
 
   afterEach(async () => db?.close());
@@ -16,7 +16,7 @@ describe('IndexedDB transactions', () => {
         "role": "user",
         "message": "testing"
     }
-    await createChat(chat=[message], chat_uuid="123")
+    await createChat([message], "id-123")
     expect(db.objectStoreNames.contains('chats')).toBe(true);
   });
 
