@@ -23,11 +23,7 @@ gpg = gnupg.GPG()
 BASE = Path(__file__).resolve().parent
 key_path = (BASE / ".." / "llm" / "keys" / "private-backup.asc").resolve()
 # key_path = os.getenv("PGP_KEY_PATH", "./llm/keys/private-backup.asc")
-priv_key = gpg.import_keys(
-    key_path
-    .read_text()
-    .strip()
-)
+priv_key = gpg.import_keys(key_path.read_text().strip())
 print(priv_key.fingerprints)
 # pub_key = gpg.import_keys(
 #     Path("/home/milena/Documents/Uni/bachelors/lino/api/llm/keys/public.asc")
@@ -46,6 +42,7 @@ class PromptRequest(BaseModel):
 # async def chat_stream(request: PromptRequest):
 async def chat_stream(request: PromptRequest):
     """The user writes a prompt and receives a response back."""
+    # TODO The request should be first decrypted and then a response should be generated
 
     async def generate():
         response = await AsyncClient().chat(

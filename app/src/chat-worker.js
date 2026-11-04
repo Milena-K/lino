@@ -1,17 +1,40 @@
 import { createChat } from "./indexedDB-lib"
+import { generateAesKey, encryptWithAesKey, encryptChatToLLM } from "./crypto-lib"
+
+async function getAssistantResponse () {
+  const URL_BASE_STR = "http://localhost:8000/chat"
+  const res = await fetch(URL_BASE_STR, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data) // data={enc_messages, enc_aes_key}
+  })
+
+  if (res.status != 200) {
+    console.log(res.status)
+    console.log(res)
+  }
+  return res
+}
 
 onmessage = async (e) => {
   let action = e.data.action
   let messages = e.data.messages
   let chat_uuid = e.data.chat_uuid
   if (action == "createChat") {
-      let res = await createChat(messages, chat_uuid) // TODO find where bug
-      self.postMessage("chat created.")
+    // TODO add chat title
+    let chat_key = await generateAesKey(true)
+    console.log(chat_key)
+    let enc_messages = await encryptWithAesKey(chat_key, JSON.stringify(messages)) 
+    let res = await createChat(enc_messages, chat_uuid) 
+    self.postMessage("chat created.")
+  } else if (action == "getAssistantMessage") {
+    // TODO: write tests for these functions below
+    const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
+    const result = await getAssistantResponse(data)
+    self.postMessage(JSON.stringify(result))
   }
-  // else if (action == "getAssistantMessage") {
-  //   const encrypted_messages = await encryptChatToLLM(messages, chat_uuid)
-  //   self.postMessage(JSON.stringify(encrypted_messages))
-  //   // const result = await getAssistantResponse(encrypted_messages)
   // } else if (action == "save") {
   //     if (messages) {
   //       saveChatDB(messages)
@@ -31,6 +54,6 @@ onmessage = async (e) => {
 // 
 // * Send encrypted messages to LLM service
 // - [x] generate AES chat key
-// - [ ] encrypt chat with AES chat key
-// - [ ] encrypt AES chat key with LLM public key
-// - [ ] send (enc_chat, enc_aes) to LLM service
+// - [x] encrypt chat with AES chat key
+// - [x] encrypt AES chat key with LLM public key
+// - [x] send (enc_chat, enc_aes) to LLM service

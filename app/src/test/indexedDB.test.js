@@ -44,7 +44,7 @@ describe('IndexedDB transactions', () => {
     const uuid = "id-123"
     const chatA = await createChat([message], uuid)
     const chatB = await checkChat(uuid)
-      console.log(chatB)
+      console.log(chatB.uuid)
     expect(chatB.uuid).toEqual(uuid)
   });
 

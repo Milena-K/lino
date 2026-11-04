@@ -65,15 +65,13 @@ async function encrypt_chat_to_LLM(new_messages) {
   return null;
 }
 
-async function getAssistantResponse (enc_messages) {
+async function getAssistantResponse (data) {
   const res = await fetch(URL_BASE_STR, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": ["http://localhost:8000/"],
-      "Access-Control-Allow-Credentials": "false", // TODO made a change here
     },
-    body: JSON.stringify({ "messages": enc_messages })
+    body: JSON.stringify(data) // data={enc_messages, enc_aes_key}
   })
 
   if (res.status != 200) {

@@ -4,8 +4,8 @@ import './Chat.scss';
 import { useParams } 
 from 'react-router';
 import * as openpgp from 'openpgp';
+import { useChatWorker } from './ChatWorker'
 // Load Web Workers
-const chat_worker = new Worker(new URL("../chat-worker.js", import.meta.url), {type: "module"});
 // const auth_worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
 
 type ChatProps = {
@@ -14,6 +14,7 @@ type ChatProps = {
 
 
 function Chat(props: ChatProps) {
+  const { result, createChat } = useChatWorker()
   let { chat_uuid } = useParams();
   const [reply, setReply] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -47,18 +48,18 @@ function Chat(props: ChatProps) {
   }, [])
 
   const getAssistantResponse = (new_messages: Message[]) => {
-    if(chat_worker) {
-      chat_worker.postMessage({
-        action: "getAssistantMessage",
-        messages: new_messages,
-        chat_uuid: chat_uuid,
-      })
-    }
-    chat_worker.onmessage = (event) => {
-      setReply(event.data);
-      setSave(true);
-      console.log(event.data);
-    }
+    // if(chat_worker) {
+    //   chat_worker.postMessage({
+    //     action: "getAssistantMessage",
+    //     messages: new_messages,
+    //     chat_uuid: chat_uuid,
+    //   })
+    // }
+    // chat_worker.onmessage = (event) => {
+    //   setReply(event.data);
+    //   setSave(true);
+    //   console.log(event.data);
+    // }
   }
 
   const sendMessages = () => {
@@ -84,14 +85,14 @@ function Chat(props: ChatProps) {
   }
 
   const saveChat = () => {
-    if( chat_worker ) {
-      console.log(userMessage)
-      chat_worker.postMessage({action: "save", messages: userMessage})
-      chat_worker.onerror = (e) => {
-        console.log(e)
-        alert(e.message)
-      }
-    }
+    // if( chat_worker ) {
+    //   console.log(userMessage)
+    //   chat_worker.postMessage({action: "save", messages: userMessage})
+    //   chat_worker.onerror = (e) => {
+    //     console.log(e)
+    //     alert(e.message)
+    //   }
+    // }
   }
 
   const handleSubmit = (event: KeyboardEvent) => {
@@ -101,32 +102,21 @@ function Chat(props: ChatProps) {
     }
 
     if(event.key === 'Enter' && !event.shiftKey && userMessage) {
-        if(chat_worker) {
           if (messages.length == 0) {
             const user_message: Message = {
                 "role": "user",
                 "content": userMessage,
             }
-            let data = {
-              action: "createChat",
-              messages: [user_message],
-              chat_uuid: chat_uuid,
-            }
-            chat_worker.postMessage(data)
-            chat_worker.onmessage = (event) => {
-              console.log(event.data);
-              // setMessages([user_message])  
-            }
-            chat_worker.onerror = (e) => {
-              console.log(e)
-            }
+            setMessages([user_message])
+            createChat(user_message, chat_uuid)
           } 
+          else{
+            console.log("more than 2 messages")
+          }
           // TODO uncomment this
-          // getAssistantResponse(messages) // Note messages might not be updated with latest data at this point
           // sendMessages()
         }
     }
-  }
 
   const resizeTextarea = () => {
     const textarea = document.querySelector('.auto-resize-textarea');
@@ -139,14 +129,14 @@ function Chat(props: ChatProps) {
       <>
         <div className='chat'>
           <div className='messages-area'>
-          {
+            {
               messages.map((message: Message, index) => (
               <div key={index} className={message.role + "-message"}>
                   {message.content}
               </div>
               ))
-          }
-          <div className='assistant-message'>{reply}</div>
+            }
+            <div className='assistant-message'>{result ?? "no reply yet."}</div>
           </div>
           <div className='textarea-container'>
           <textarea contentEditable="true" className='auto-resize-textarea'

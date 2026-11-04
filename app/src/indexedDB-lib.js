@@ -1,3 +1,5 @@
+import { generateAesKey } from "./crypto-lib"
+
 const promisify = req =>
       new Promise((resolve, reject) => {
           req.onsuccess = () => resolve(req.result)
@@ -24,6 +26,8 @@ export async function checkChat(chatUuid) {
             record = await promisify(store.get(chatUuid))
         }
         if (!record) {
+            // TODO: here I should call /chats to see if we have chat stored in DB
+            // let URL_BASE_STR = "http://localhost:8000/chat"
             return {
                 dbExists: true,
                 storeExists: true,
@@ -39,6 +43,7 @@ export async function checkChat(chatUuid) {
             hasAesKey: key != null,
             keyType: key != null ? Object.prototype.toString.call(key) : null,
             uuid: record["chat_uuid"],
+            aesKey: key,
             recordFields: Object.keys(record)
         }
     } finally {
@@ -61,7 +66,7 @@ export function openDB(name="SecureDB", version=null, onUpgrade=null) {
 }
 
 export async function ensureChatsStore(dbName = "SecureDB") {
-    const db = await openDB(dbName)
+    const db = await openDB()
     if (db.objectStoreNames.contains("chats")) return db;
 
     const nextVersion = db.version + 1
@@ -73,13 +78,20 @@ export async function ensureChatsStore(dbName = "SecureDB") {
 }
 
 export async function createChat(messages, chat_uuid) {
-    const db = await ensureChatsStore()
-    const tx = db.transaction("chats", "readwrite")
+/*  Once a chat is opened:
+    - old: call fastapi endpoint to check if it is stored in DB, pull it and save to indexedDB
+    - new: create new one with a single user message and generate AES chat key
+    - invalid uuid: check with fastapi and if chat is not found, redirect to /new page.
+*/
+    // TODO: check if there is already a chat with that uuid
+    const aes_key = await generateAesKey(true) // the key is extractable
     const chat = {
         chat_uuid,
         messages,
-        aes_key: null, //generateAesKey()
+        aes_key  
     }
+    const indexedDB = await ensureChatsStore()
+    const tx = indexedDB.transaction("chats", "readwrite")
     tx.objectStore("chats").put(chat)
 
     await new Promise((res, rej) => {
@@ -87,7 +99,15 @@ export async function createChat(messages, chat_uuid) {
         tx.onerror = () => rej(tx.error)
     })
 
-    console.log("Stores in SecureDB:", [...db.objectStoreNames])
-    db.close();
+    console.log("Stores in SecureDB:", [...indexedDB.objectStoreNames])
+    indexedDB.close();
     return chat
+}
+
+export async function getAesKey(chat_uuid) {
+    // check indexedDB if chat is stored and AES key present
+    let result = await checkChat(chat_uuid)
+    if (!result.chatFound)  // chat doesn't exists
+        return null 
+    return result.aesKey // chat does exist 
 }
