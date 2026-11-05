@@ -125,13 +125,17 @@ export async function decryptWithAesKey(key, blob) {
 }
 
 
-export async function encryptChatToLLM(messages, chat_uuid) {
-    // TODO: encrypt messages with AES chat key
-    const chat_key = await getAesKey(chat_uuid)
-    if (!chat_key) return null // TODO maybe I should raise an error here "chat not found."
+export async function encryptChatToLLM(messages, chat_uuid, chat_key=null) {
+    if (!chat_key)
+        chat_key = await getAesKey(chat_uuid)
+    // encrypts messages with AES chat key
     const enc_messages = await encryptWithAesKey(chat_key, JSON.stringify(messages)) 
-    // TODO: encrypt AES key with LLM pub key
+    console.log("enc_messages")
+    console.log(enc_messages)
+    // encrypts AES key with LLM pub key
     const enc_aes = await encryptWithLLMKey(chat_key)
+    console.log("enc_aes")
+    console.log(enc_aes)
     return {enc_messages, enc_aes}
 }
 

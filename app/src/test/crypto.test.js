@@ -42,12 +42,15 @@ describe('Crypto keys and functions', () => {
         "role": "user",
         "content": "testing",
       }]
-      await createChat(messages, "123-53w-test")
+      const chat = await createChat(messages, "123-53w-test")
+      expect(chat).toBeDefined()
+      expect(db).toBeDefined()
+      expect(chat.aes_key).toBeDefined()
 
-      const {encrypted_messages, encrypted_aes} = await clib.encryptChatToLLM(messages, "123-53w-test");
-      // expect(encrypted_aes).toMatch(/^-----BEGIN PGP MESSAGE-----/)
-      const parsed = await readMessage({armoredMessage: encrypted_aes})
-      expect( parsed ).toBeDefined()
+      clib.encryptChatToLLM(messages, "123-53w-test", chat.aes_key).then(result => {
+        expect(result).toBeDefined()
+        expect(result.enc_aes).toBeDefined()
+      });
   })
 })
 

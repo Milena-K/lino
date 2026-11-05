@@ -70,10 +70,6 @@ async def read_chat(username: str, chat_id: int, session_key: str):
     return chat
 
 
-class EncryptedRequest(BaseModel):
-    message: str
-
-
 def encrypt_message(message: str) -> str:
     """Encrypt a string, return armored ciphertext."""
     encrypted = gpg.encrypt(
@@ -104,12 +100,26 @@ def decrypt_message(ciphertext: str) -> str:
 
 
 @router.post("/save")
-async def save(req: EncryptedRequest):
+async def save(req):
     # print(gpg.list_keys(secret=True)[1]["fingerprint"])
     # decrypt
     decrypted = decrypt_message(req.message)
 
     print(decrypted)
+    return {"ok": True}
+
+
+class EncryptedRequest(BaseModel):
+    enc_messages: str = Field(..., description="Encrypted messages payload")
+    enc_aes_key: str = Field(
+        ..., description="AES key encrypted with the recipient's public key"
+    )
+
+
+@router.post("/llm")
+async def llm(req: EncryptedRequest):
+    print(req.enc_aes_key)
+    print(req.enc_messages)
     return {"ok": True}
 
 

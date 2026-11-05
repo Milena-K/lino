@@ -6,8 +6,11 @@ const promisify = req =>
           req.onerror = () => reject(req.error)
       })
 
-export async function checkChat(chatUuid) {
-    const db = await openDB()
+export async function checkChat(chatUuid, db=null) {
+    if (!db) {
+      db = await openDB()    
+    }
+
     if (!db) return { dbExists: false }
 
     try {
@@ -107,7 +110,9 @@ export async function createChat(messages, chat_uuid) {
 export async function getAesKey(chat_uuid) {
     // check indexedDB if chat is stored and AES key present
     let result = await checkChat(chat_uuid)
-    if (!result.chatFound)  // chat doesn't exists
+    if (!result.chatFound) { // chat doesn't exists
+        console.error("chat not found.")
         return null 
+    }
     return result.aesKey // chat does exist 
 }

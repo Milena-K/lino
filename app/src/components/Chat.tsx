@@ -14,7 +14,7 @@ type ChatProps = {
 
 
 function Chat(props: ChatProps) {
-  const { result, createChat } = useChatWorker()
+  const { result, createChat, sendChat } = useChatWorker()
   let { chat_uuid } = useParams();
   const [reply, setReply] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -107,11 +107,16 @@ function Chat(props: ChatProps) {
                 "role": "user",
                 "content": userMessage,
             }
+            // TODO: HERE figure out how to return results from ChatWorker
+            // the message from createChat is not stored in result variable
+            // figure out why.
             setMessages([user_message])
             createChat(user_message, chat_uuid)
           } 
           else{
-            console.log("more than 2 messages")
+            console.log("sending chat.")
+            sendChat(messages, chat_uuid)
+            console.log(result)
           }
           // TODO uncomment this
           // sendMessages()

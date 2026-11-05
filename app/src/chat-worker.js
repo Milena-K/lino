@@ -2,7 +2,7 @@ import { createChat } from "./indexedDB-lib"
 import { generateAesKey, encryptWithAesKey, encryptChatToLLM } from "./crypto-lib"
 
 async function getAssistantResponse () {
-  const URL_BASE_STR = "http://localhost:8000/chat"
+  const URL_BASE_STR = "http://localhost:8000/chat/llm"
   const res = await fetch(URL_BASE_STR, {
     method: "POST",
     headers: {
@@ -30,10 +30,10 @@ onmessage = async (e) => {
     let res = await createChat(enc_messages, chat_uuid) 
     self.postMessage("chat created.")
   } else if (action == "getAssistantMessage") {
-    // TODO: write tests for these functions below
-    const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
-    const result = await getAssistantResponse(data)
-    self.postMessage(JSON.stringify(result))
+    // const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
+    // const result = await getAssistantResponse(data)
+    // self.postMessage(JSON.stringify(result))
+    self.postMessage("chat sent.")
   }
   // } else if (action == "save") {
   //     if (messages) {
