@@ -14,7 +14,7 @@ type ChatProps = {
 
 
 function Chat(props: ChatProps) {
-  const { result, createChat, sendChat } = useChatWorker()
+  const { queue, createChat, sendChat } = useChatWorker()
   let { chat_uuid } = useParams();
   const [reply, setReply] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -114,9 +114,9 @@ function Chat(props: ChatProps) {
             createChat(user_message, chat_uuid)
           } 
           else{
+            console.log("more than one message:")
             console.log("sending chat.")
             sendChat(messages, chat_uuid)
-            console.log(result)
           }
           // TODO uncomment this
           // sendMessages()
@@ -141,7 +141,7 @@ function Chat(props: ChatProps) {
               </div>
               ))
             }
-            <div className='assistant-message'>{result ?? "no reply yet."}</div>
+            {/* <div className='assistant-message'>{result ?? "no reply yet."}</div> */}
           </div>
           <div className='textarea-container'>
           <textarea contentEditable="true" className='auto-resize-textarea'

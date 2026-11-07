@@ -18,23 +18,51 @@ async function getAssistantResponse () {
   return res
 }
 
-onmessage = async (e) => {
-  let action = e.data.action
-  let messages = e.data.messages
-  let chat_uuid = e.data.chat_uuid
-  if (action == "createChat") {
-    // TODO add chat title
-    let chat_key = await generateAesKey(true)
-    console.log(chat_key)
-    let enc_messages = await encryptWithAesKey(chat_key, JSON.stringify(messages)) 
-    let res = await createChat(enc_messages, chat_uuid) 
-    self.postMessage("chat created.")
-  } else if (action == "getAssistantMessage") {
-    // const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
-    // const result = await getAssistantResponse(data)
-    // self.postMessage(JSON.stringify(result))
-    self.postMessage("chat sent.")
-  }
+const queue = []
+let processing = false
+
+onmessage = (e) => {
+    queue.push(e.data)
+    void processQueue()
+}
+
+async function processQueue() {
+    if (processing) return;
+
+    processing = true;
+    try {
+        while (queue.length > 0) {
+            const task = queue.shift();
+            try {
+                // old code
+                let action = task.action
+                let messages = task.messages
+                let chat_uuid = task.chat_uuid
+                if (action == "createChat") {
+                    // TODO add chat title
+                    let chat_key = await generateAesKey(true)
+                    console.log(chat_key)
+                    let enc_messages = await encryptWithAesKey(chat_key, JSON.stringify(messages)) 
+                    let res = await createChat(enc_messages, chat_uuid) 
+                    self.postMessage("chat created.")
+                } else if (action == "getAssistantMessage") {
+                    console.log("hello?")
+                    // const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
+                    // const result = await getAssistantResponse(data)
+                    // self.postMessage(JSON.stringify(result))
+                    self.postMessage("chat sent.")
+                }
+                // end old code
+            } catch (err) {
+                self.postMessage({ id: task.id, error: String(err) })
+            }
+        }
+    } finally {
+        processing = false
+    }
+}
+
+
   // } else if (action == "save") {
   //     if (messages) {
   //       saveChatDB(messages)
@@ -45,7 +73,6 @@ onmessage = async (e) => {
   //     // TODO save chat to IndexedDB
   // }
 
-}
 
 // Once a chat is opened new or old it should either:
 // old: call fastapi endpoint to check if it is stored in DB, pull it and save to indexedDB
