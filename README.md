@@ -23,7 +23,6 @@ uv run fastapi dev
 ## Setup LLM
 cd api/llm/
 docker compose up
-docker exec ollama ollama pull llama3.2:1B2:1B
-
+docker exec ollama ollama pull llama3.2:1b
 
 

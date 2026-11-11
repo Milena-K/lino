@@ -1,25 +1,10 @@
 import { createChat } from "./indexedDB-lib"
 import { generateAesKey, encryptWithAesKey, encryptChatToLLM } from "./crypto-lib"
-
-async function getAssistantResponse () {
-  const URL_BASE_STR = "http://localhost:8000/chat/llm"
-  const res = await fetch(URL_BASE_STR, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data) // data={enc_messages, enc_aes_key}
-  })
-
-  if (res.status != 200) {
-    console.log(res.status)
-    console.log(res)
-  }
-  return res
-}
+import { getAssistantResponse, toBase64 } from "./utils"
 
 const queue = []
 let processing = false
+let controller = null
 
 onmessage = (e) => {
     queue.push(e.data)
@@ -34,27 +19,46 @@ async function processQueue() {
         while (queue.length > 0) {
             const task = queue.shift();
             try {
-                // old code
                 let action = task.action
                 let messages = task.messages
                 let chat_uuid = task.chat_uuid
                 if (action == "createChat") {
                     // TODO add chat title
                     let chat_key = await generateAesKey(true)
-                    console.log(chat_key)
                     let enc_messages = await encryptWithAesKey(chat_key, JSON.stringify(messages)) 
                     let res = await createChat(enc_messages, chat_uuid) 
-                    self.postMessage("chat created.")
+                    // self.postMessage("chat created.")
                 } else if (action == "getAssistantMessage") {
-                    console.log("hello?")
-                    // const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
-                    // const result = await getAssistantResponse(data)
-                    // self.postMessage(JSON.stringify(result))
-                    self.postMessage("chat sent.")
-                }
-                // end old code
+                    const { type, id } = task.data; // TODO check if id is sent
+
+                    if (type === 'cancel') {
+                        controller?.abort()
+                        return;
+                    }
+
+                    if (type === "start") {
+                        const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
+                        const reader = await getAssistantResponse(data)
+                        const decoder = new TextDecoder()
+                        controller = new AbortController()
+                        
+                        while(true) {
+                            const { done, value } = await reader.read()
+                            if (done) break
+                            const text = decoder.decode(value, { stream: true })
+                            if (text) self.postMessage({ type: "chunk", id, text })
+                        }
+                        self.postMessage({type: "done", id })
+                        // self.postMessage(JSON.stringify(result))
+                        // self.postMessage("chat sent.")
+                    } 
+                }// ADD new actions HERE
             } catch (err) {
-                self.postMessage({ id: task.id, error: String(err) })
+                if (err.name === "AbortError") {
+                    self.postMessage({ type: "aborted", id, error: String(err) })
+                } else {
+                    self.postMessage({ type: "error", id, error: String(err) })
+                }
             }
         }
     } finally {

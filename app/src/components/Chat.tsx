@@ -4,7 +4,7 @@ import './Chat.scss';
 import { useParams } 
 from 'react-router';
 import * as openpgp from 'openpgp';
-import { useChatWorker } from './ChatWorker'
+import { useChatWorker } from './useChatWorker'
 // Load Web Workers
 // const auth_worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
 
@@ -14,7 +14,7 @@ type ChatProps = {
 
 
 function Chat(props: ChatProps) {
-  const { queue, createChat, sendChat } = useChatWorker()
+  const { text, createChat, sendChat } = useChatWorker()
   let { chat_uuid } = useParams();
   const [reply, setReply] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -33,6 +33,7 @@ function Chat(props: ChatProps) {
     resizeTextarea();
   }, [userMessage])
 
+
   useEffect(() => {
     if( messages.length > 0 )
       sendMessages(props.firstMessage)
@@ -47,20 +48,14 @@ function Chat(props: ChatProps) {
     };
   }, [])
 
-  const getAssistantResponse = (new_messages: Message[]) => {
-    // if(chat_worker) {
-    //   chat_worker.postMessage({
-    //     action: "getAssistantMessage",
-    //     messages: new_messages,
-    //     chat_uuid: chat_uuid,
-    //   })
-    // }
-    // chat_worker.onmessage = (event) => {
-    //   setReply(event.data);
-    //   setSave(true);
-    //   console.log(event.data);
-    // }
-  }
+  // const getAssistantResponse = async () => {
+  //   if(result) {
+  //       for await (const chunk of response.body) {
+  //           console.log(decoder.decode(chunk, { stream: true }));
+
+  //       }
+  //   }
+  // }
 
   const sendMessages = () => {
       const user_message: Message = {
@@ -107,11 +102,9 @@ function Chat(props: ChatProps) {
                 "role": "user",
                 "content": userMessage,
             }
-            // TODO: HERE figure out how to return results from ChatWorker
-            // the message from createChat is not stored in result variable
-            // figure out why.
             setMessages([user_message])
             createChat(user_message, chat_uuid)
+            sendChat(messages, chat_uuid)
           } 
           else{
             console.log("more than one message:")
@@ -141,7 +134,7 @@ function Chat(props: ChatProps) {
               </div>
               ))
             }
-            {/* <div className='assistant-message'>{result ?? "no reply yet."}</div> */}
+            <div className='assistant-message'>{text}</div> 
           </div>
           <div className='textarea-container'>
           <textarea contentEditable="true" className='auto-resize-textarea'

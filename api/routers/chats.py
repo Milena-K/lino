@@ -1,14 +1,17 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from api.db.db_types import MessageJSON as Message
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pathlib import Path
 from ollama import AsyncClient
 from typing import List
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import api.db.main as db
 import uuid
 import gnupg
 import os
+import base64
+import json
 
 BASE_URL = "http://localhost:11434"
 
@@ -111,16 +114,40 @@ async def save(req):
 
 class EncryptedRequest(BaseModel):
     enc_messages: str = Field(..., description="Encrypted messages payload")
-    enc_aes_key: str = Field(
+    enc_aes: str = Field(
         ..., description="AES key encrypted with the recipient's public key"
     )
 
 
 @router.post("/llm")
 async def llm(req: EncryptedRequest):
-    print(req.enc_aes_key)
-    print(req.enc_messages)
-    return {"ok": True}
+    # TODO decrypt AES key with private PGP key
+    result = gpg.decrypt(req.enc_aes)
+    if not result.ok:
+        raise HTTPException(status_code=400, detail=result.status)
+    aes_key = bytes(result.data)
+    print("aes_key ok")
+    # TODO decrypt messages with AES key
+    data = base64.b64decode(req.enc_messages)
+    # print(enc_bytes)
+    iv, ct = data[:12], data[12:]
+
+    plaintext = AESGCM(aes_key).decrypt(iv, ct, None)
+    messages = json.loads(plaintext.decode("utf-8"))
+    # print(req.enc_aes_key)
+    print(messages)
+
+    async def generate():
+        response = await AsyncClient().chat(
+            model="llama3.2:1B", stream=True, messages=messages
+        )
+        async for chunk in response:
+            if chunk:
+                yield chunk.message.content.encode()
+
+    # TODO encrypt the response before sending it back
+    return StreamingResponse(generate(), media_type="text/plain")
+    # return {"ok": True}
 
 
 # TODO improve this method

@@ -22,8 +22,8 @@ export async function encryptWithLLMKey(aesKey) {
     .join("\n");
 
     const publicKey = await openpgp.readKey({ armoredKey: cleanKey });
-    console.log("fingerprints")
-    console.log(publicKey.getFingerprint())
+    // console.log("fingerprints")
+    // console.log(publicKey.getFingerprint())
 
     const rawKey = await crypto.subtle.exportKey('raw', aesKey)
     const keyBytes = new Uint8Array(rawKey)
@@ -34,7 +34,7 @@ export async function encryptWithLLMKey(aesKey) {
         encryptionKeys: publicKey,
         format: 'armored'
     })
-    console.log(secret)
+    // console.log(secret)
     return secret
 }
 
