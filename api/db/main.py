@@ -39,6 +39,7 @@ async def create_users_table():
         user_id SERIAL PRIMARY KEY,
         user_name VARCHAR(100) UNIQUE NOT NULL,
         registration_record TEXT NOT NULL
+        main_key bytea NOT NULL
     )
     """
     async with aconn:
@@ -114,40 +115,63 @@ async def create_chats_table():
 # USERS CRUD operations
 
 
-async def create_user(user_name: str, registration_record: str):
+async def create_user(user_name: str, registration_record: str, main_key: str | None = None):
     """Insert user record"""
     aconn = await psycopg.AsyncConnection.connect(conninfo)
     insert_query = """
-    INSERT INTO users (user_name, registration_record)
-    VALUES (%s, %s)
+    INSERT INTO users (user_name, registration_record, main_key)
+    VALUES (%s, %s, %s)
     RETURNING user_id;
     """
     async with aconn:
         async with aconn.cursor() as curr:
-            insert = await curr.execute(insert_query, (user_name, registration_record))
+            if main_key is None:
+                insert = await curr.execute(insert_query, (user_name, registration_record))
+            else:
+                insert = await curr.execute(insert_query, (user_name, registration_record, main_key))
             result = await insert.fetchone()
             logging.info(f"User inserted with ID: {result}")
 
 
-async def update_user(user_id: int, registration_record: str):
+async def update_user(user_id: int, registration_record: str | None = None, main_key: str | None = None):
     """Update user record"""
+    if registration_record is None and main_key is None:
+        logging.error("No fields to update for user.")
+        return
+
     aconn = await psycopg.AsyncConnection.connect(conninfo)
-    update_query = """
-    UPDATE users
-    SET registration_record = %s
-    WHERE user_id = %s
-    """
+
     async with aconn:
         async with aconn.cursor() as curr:
-            await curr.execute(update_query, (registration_record, user_id))
-            logging.info("User updated the password.")
+            if registration_record is not None and main_key is None:
+                update_query = """
+                UPDATE users
+                SET registration_record = %s
+                WHERE user_id = %s
+                """
+                await curr.execute(update_query, (registration_record, user_id))
+            elif registration_record is None and main_key is not None:
+                update_query = """
+                UPDATE users
+                SET main_key = %s
+                WHERE user_id = %s
+                """
+                await curr.execute(update_query, (main_key, user_id))
+            else:
+                update_query = """
+                UPDATE users
+                SET registration_record = %s, main_key = %s
+                WHERE user_id = %s
+                """
+                await curr.execute(update_query, (registration_record, main_key, user_id))
+            logging.info("User updated.")
 
 
 async def get_user(user_name: str) -> User | None:
     """Return user record"""
     aconn = await psycopg.AsyncConnection.connect(conninfo)
     get_user_query = """
-    SELECT user_id, user_name, registration_record
+    SELECT user_id, user_name, registration_record, main_key
     FROM users
     WHERE user_name = %s
     """
@@ -161,6 +185,7 @@ async def get_user(user_name: str) -> User | None:
                     user_id=result[0],
                     user_name=result[1],
                     registration_record=result[2],
+                    main_key=result[3]
                 )
             else:
                 logging.info(f"The user {user_name} does not exist.")
