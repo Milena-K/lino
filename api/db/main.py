@@ -100,6 +100,7 @@ async def create_chats_table():
         user_id INTEGER,
         title VARCHAR(200),
         messages JSONB,
+        aes_key BYTEA NOT NULL,
         CONSTRAINT fk_chat_user
             FOREIGN KEY (user_id)
             REFERENCES users(user_id)
@@ -115,7 +116,9 @@ async def create_chats_table():
 # USERS CRUD operations
 
 
-async def create_user(user_name: str, registration_record: str, main_key: str | None = None):
+async def create_user(
+    user_name: str, registration_record: str, main_key: str | None = None
+):
     """Insert user record"""
     aconn = await psycopg.AsyncConnection.connect(conninfo)
     insert_query = """
@@ -126,14 +129,20 @@ async def create_user(user_name: str, registration_record: str, main_key: str | 
     async with aconn:
         async with aconn.cursor() as curr:
             if main_key is None:
-                insert = await curr.execute(insert_query, (user_name, registration_record))
+                insert = await curr.execute(
+                    insert_query, (user_name, registration_record)
+                )
             else:
-                insert = await curr.execute(insert_query, (user_name, registration_record, main_key))
+                insert = await curr.execute(
+                    insert_query, (user_name, registration_record, main_key)
+                )
             result = await insert.fetchone()
             logging.info(f"User inserted with ID: {result}")
 
 
-async def update_user(user_id: int, registration_record: str | None = None, main_key: str | None = None):
+async def update_user(
+    user_id: int, registration_record: str | None = None, main_key: str | None = None
+):
     """Update user record"""
     if registration_record is None and main_key is None:
         logging.error("No fields to update for user.")
@@ -163,7 +172,9 @@ async def update_user(user_id: int, registration_record: str | None = None, main
                 SET registration_record = %s, main_key = %s
                 WHERE user_id = %s
                 """
-                await curr.execute(update_query, (registration_record, main_key, user_id))
+                await curr.execute(
+                    update_query, (registration_record, main_key, user_id)
+                )
             logging.info("User updated.")
 
 
@@ -185,7 +196,7 @@ async def get_user(user_name: str) -> User | None:
                     user_id=result[0],
                     user_name=result[1],
                     registration_record=result[2],
-                    main_key=result[3]
+                    main_key=result[3],
                 )
             else:
                 logging.info(f"The user {user_name} does not exist.")
@@ -205,19 +216,21 @@ async def delete_user(username: str):
 ### CHATS CRUD
 
 
-async def create_chat(user_id: int, title: str, chat: str):
+async def create_chat(user_id: int, title: str, chat: str, aes_key: bytes):
     """Create chat record"""
     try:
         ChatJSON.model_validate_json(chat)
         aconn = await psycopg.AsyncConnection.connect(conninfo)
         insert_query = """
-        INSERT INTO chats (user_id, title, messages)
-        VALUES (%s, %s, %s)
-        RETURNING user_id, title, messages;
+        INSERT INTO chats (user_id, title, messages, aes_key)
+        VALUES (%s, %s, %s, %s)
+        RETURNING user_id, title, messages, aes_key;
         """
         async with aconn:
             async with aconn.cursor() as curr:
-                chats = await curr.execute(insert_query, (user_id, title, chat))
+                chats = await curr.execute(
+                    insert_query, (user_id, title, chat, aes_key)
+                )
                 result = await chats.fetchone()
                 if result:
                     logging.info(f"Chat inserted with ID: {result}")

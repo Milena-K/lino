@@ -5,8 +5,6 @@ import { useParams }
 from 'react-router';
 import * as openpgp from 'openpgp';
 import { useChatWorker } from './useChatWorker'
-// Load Web Workers
-// const auth_worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
 
 type ChatProps = {
     firstMessage: string,
@@ -14,30 +12,45 @@ type ChatProps = {
 
 
 function Chat(props: ChatProps) {
-  const { text, createChat, sendChat } = useChatWorker()
+  const { text, createChat, sendChat, saveChat, isStreaming } = useChatWorker()
   let { chat_uuid } = useParams();
   const [reply, setReply] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const test_messages: Message[] = [
+    {
+      role: "user",
+      content: "test"
+    },
+    {
+      role: "assistant",
+      content: "hi test!"
+    },
+  ]
+  const [messages, setMessages] = useState<Message[]>(test_messages);
   const [title, setTitle] = useState<string>("");
   const [userMessage, setUserMessage] = useState<string>("");
-  const [save, setSave] = useState<boolean>(false);
 
-  useEffect(() => {
-    if(save) {
-      saveChat();
-      setSave(false)
-    }
-  }, [save])
 
   useEffect(() => {
     resizeTextarea();
   }, [userMessage])
 
+  useEffect(() => {
+    if (!isStreaming) {
+      saveChat(messages, chat_uuid)
+    }
+    
+  }, [isStreaming])
 
   useEffect(() => {
-    if( messages.length > 0 )
-      sendMessages(props.firstMessage)
-
+    if(props.firstMessage) {
+      const user_message: Message = {
+        "role": "user",
+        "content": props.firstMessage,
+      }
+      setMessages([...messages, user_message]) // TODO remove ...messages after removing test_messages
+      createChat(user_message, chat_uuid)
+      sendChat([user_message], chat_uuid)
+    }
     // event listeners
     window.addEventListener('resize', resizeTextarea)
     window.addEventListener('load', resizeTextarea)
@@ -48,73 +61,36 @@ function Chat(props: ChatProps) {
     };
   }, [])
 
-  // const getAssistantResponse = async () => {
-  //   if(result) {
-  //       for await (const chunk of response.body) {
-  //           console.log(decoder.decode(chunk, { stream: true }));
-
-  //       }
-  //   }
+  // const sendMessages = () => {
+  //     const assistant_message: Message = {
+  //       "role": "assistant",
+  //       "content": reply,
+  //     }
+  //     let new_messages;
+  //     if (reply) {
+  //       new_messages = [...messages, assistant_message, user_message]
+  //     } else {
+  //       new_messages = [...messages, user_message]
+  //     }
+  //     setMessages(new_messages)
+  //     setReply("")
+  //     setUserMessage("")
   // }
-
-  const sendMessages = () => {
-      const user_message: Message = {
-        "role": "user",
-        "content": userMessage,
-      }
-      const assistant_message: Message = {
-        "role": "assistant",
-        "content": reply,
-      }
-      let new_messages;
-      if (reply) {
-        new_messages = [...messages, assistant_message, user_message]
-      } else {
-        new_messages = [...messages, user_message]
-      }
-      setMessages(new_messages)
-      setReply("")
-      setUserMessage("")
-
-    getAssistantResponse(new_messages)
-  }
-
-  const saveChat = () => {
-    // if( chat_worker ) {
-    //   console.log(userMessage)
-    //   chat_worker.postMessage({action: "save", messages: userMessage})
-    //   chat_worker.onerror = (e) => {
-    //     console.log(e)
-    //     alert(e.message)
-    //   }
-    // }
-  }
 
   const handleSubmit = (event: KeyboardEvent) => {
     if(event.key === 'Enter' && event.shiftKey) {
       event.preventDefault();
       document.execCommand("insertLineBreak");
     }
-
     if(event.key === 'Enter' && !event.shiftKey && userMessage) {
-          if (messages.length == 0) {
-            const user_message: Message = {
-                "role": "user",
-                "content": userMessage,
-            }
-            setMessages([user_message])
-            createChat(user_message, chat_uuid)
-            sendChat(messages, chat_uuid)
-          } 
-          else{
-            console.log("more than one message:")
-            console.log("sending chat.")
-            sendChat(messages, chat_uuid)
-          }
-          // TODO uncomment this
-          // sendMessages()
-        }
+      const user_message: Message = {
+        "role": "user",
+        "content": userMessage,
+      }
+      setMessages([...messages, user_message])
+      sendChat(messages, chat_uuid)
     }
+  }
 
   const resizeTextarea = () => {
     const textarea = document.querySelector('.auto-resize-textarea');
@@ -122,17 +98,17 @@ function Chat(props: ChatProps) {
     textarea.style.height = textarea.scrollHeight + 2 + 'px';
   }
 
-
   return (
       <>
         <div className='chat'>
           <div className='messages-area'>
             {
+              messages ?
               messages.map((message: Message, index) => (
               <div key={index} className={message.role + "-message"}>
                   {message.content}
               </div>
-              ))
+              )) : null
             }
             <div className='assistant-message'>{text}</div> 
           </div>

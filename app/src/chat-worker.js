@@ -52,7 +52,15 @@ async function processQueue() {
                         // self.postMessage(JSON.stringify(result))
                         // self.postMessage("chat sent.")
                     } 
-                }// ADD new actions HERE
+                } else if (action == "saveChat") {
+                    // TODO find the chat in IndexedDB using UUID
+                    // TODO get the aes key for the chat
+                    // TODO encrypt the messages with aes_key (they could be already encrypted)
+                    // TODO encrypt the aes_key with pgp_key
+                    // TODO send to fastapi
+                }
+
+                // ADD new actions HERE
             } catch (err) {
                 if (err.name === "AbortError") {
                     self.postMessage({ type: "aborted", id, error: String(err) })

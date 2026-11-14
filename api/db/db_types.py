@@ -20,5 +20,6 @@ class MessageJSON(BaseModel):
 class ChatJSON(BaseModel):
     model: str = Field(json_schema_extra={"min_length": 3})
     messages: List[MessageJSON]
+    # aes_key: bytes
     stream: Optional[bool] = False
     temperature: Optional[float] = Field(default=0.7, ge=0.0, le=2.0)
