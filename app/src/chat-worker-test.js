@@ -1,6 +1,6 @@
 import { createChat } from "./indexedDB-lib"
 import { generateAesKey, encryptWithAesKey, encryptChatToLLM } from "./crypto-lib"
-import { getAssistantResponse, toBase64 } from "./utils"
+import { getAssistantResponse } from "./utils"
 
 const queue = []
 let processing = false
@@ -35,5 +35,7 @@ async function processQueue() {
             if (text) self.postMessage({ type: "chunk", text })
         }
         self.postMessage({type: "done"})
-    } else if ()
+    } else if () {
+        
+    }
 }

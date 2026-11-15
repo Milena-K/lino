@@ -12,9 +12,9 @@ type ChatProps = {
 
 
 function Chat(props: ChatProps) {
-  const { text, createChat, sendChat, saveChat, isStreaming } = useChatWorker()
+  const { createChat, sendChat, saveChat, isStreaming, reply, setReply } = useChatWorker()
   let { chat_uuid } = useParams();
-  const [reply, setReply] = useState("");
+  // const [reply, setReply] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [title, setTitle] = useState<string>("");
   const [userMessage, setUserMessage] = useState<string>("");
@@ -35,12 +35,17 @@ function Chat(props: ChatProps) {
     resizeTextarea();
   }, [userMessage])
 
-  // useEffect(() => {
-  //   if (!isStreaming) {
-  //     saveChat(messages, chat_uuid)
-  //   }
+  useEffect(() => {
+    if (!isStreaming) {
+      setMessages([...messages, {
+        role: "assistant",
+        content: reply
+      }])
+      setReply("")
+      // saveChat(messages, chat_uuid)
+    }
     
-  // }, [isStreaming])
+  }, [isStreaming])
 
   useEffect(() => {
     if(isFirstMessage) {
@@ -49,7 +54,7 @@ function Chat(props: ChatProps) {
         "role": "user",
         "content": props.firstMessage,
       }
-      setMessages([...messages, user_message]) // TODO remove ...messages after removing test_messages
+      setMessages([user_message])
       createChat(user_message, chat_uuid)
       sendChat([user_message], chat_uuid)
     }
@@ -85,12 +90,15 @@ function Chat(props: ChatProps) {
       document.execCommand("insertLineBreak");
     }
     if(event.key === 'Enter' && !event.shiftKey && userMessage) {
+      console.log(userMessage)
       const user_message: Message = {
         "role": "user",
         "content": userMessage,
       }
       setMessages([...messages, user_message])
-      sendChat(messages, chat_uuid)
+      sendChat([...messages, user_message], chat_uuid)
+      event.preventDefault();
+      setUserMessage("")
     }
   }
 
@@ -112,7 +120,9 @@ function Chat(props: ChatProps) {
               </div>
               )) : null
             }
-            <div className='assistant-message'>{text}</div> 
+            <div className='assistant-message'>
+              {reply}
+            </div> 
           </div>
           <div className='textarea-container'>
           <textarea contentEditable="true" className='auto-resize-textarea'

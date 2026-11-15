@@ -118,15 +118,17 @@ class EncryptedRequest(BaseModel):
 
 
 @router.post("/llm")
-async def llm(req):
-    # TODO decrypt AES key with private PGP key
+async def llm(req: EncryptedRequest):
+    # decrypt AES key with private PGP key
+    print(req.enc_aes)
+    print(req.enc_messages)
     result = gpg.decrypt(req.enc_aes)
     if not result.ok:
         raise HTTPException(status_code=400, detail=result.status)
     aes_key = bytes(result.data)
     print("aes_key ok")
-    # TODO decrypt messages with AES key
-    data = base64.b64decode(req.enc_messages)
+    # decrypt messages with AES key
+    data = req.enc_messages
     # print(enc_bytes)
     iv, ct = data[:12], data[12:]
 
@@ -139,17 +141,20 @@ async def llm(req):
         response = await AsyncClient().chat(
             model="llama3.2:1B", stream=True, messages=messages
         )
-        # for testing
-        # for token in ["Hello", " ", "world"]:
-        #     yield f"data: {token}\n\n"
-        #     await asyncio.sleep(0.5)
         async for chunk in response:
             if chunk:
                 print(chunk.message.content.encode())
-                yield chunk.message.content.encode()
+                # TODO encode the chunk with AES key
+                nonce = os.urandom(12)
+                plaintext = chunk.message.content.encode()
+                ciphertext = AESGCM(aes_key).encrypt(
+                    nonce, plaintext, associated_data=None
+                )
+                blob = nonce + ciphertext
+                print(blob)
+                yield blob
 
-    # TODO encrypt the response before sending it back
-    return StreamingResponse(generate(), media_type="text/plain")
+    return StreamingResponse(generate(), media_type="application/octet-stream")
     # return {"ok": True}
 
 

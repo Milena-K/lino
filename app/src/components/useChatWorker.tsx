@@ -7,28 +7,31 @@ interface Task {
 const FLUSH_INTERVAL_MS = 30
 
 export function useChatWorker() {
-  const [messages, setMessages] = useState([])
+  const [reply, setReply] = useState("")
   const [isStreaming, setIsStreaming] = useState(false); 
 
-  const [text, setText] = useState("")
   const workerRef = useRef(null)
   const bufferRef = useRef("")
   const timerRef = useRef(null)
 
 
   const flush = useCallback(() => {
+    // cancel any scheduled flushes
     if (timerRef.current != null) {
-      clearTiemeout(timerRef.current) 
+      clearTimeout(timerRef.current) 
       timerRef.current = null
     }
-    const text = bufferRef.current
-    if (!text) return
+    // read the buffer, if it's empty nothing to do
+    const buffer_text = bufferRef.current
+    if (!buffer_text) return
+    // reset buffer, and append last buffer message
     bufferRef.current = ""
-    setMessages((prev) => {
-      const last = prev[prev.length - 1]
-      if (!last || last.role !== "assistant") return prev
-      return [...prev.slice(0, -1), { ...last, content: last.content + text }]
-    })
+    setReply((prev) => prev + buffer_text)
+    // setReply((prev) => {
+    //   const last = prev[prev.length - 1]
+    //   if (!last || last.role !== "assistant") return prev
+    //   return [...prev.slice(0, -1), { ...last, content: last.content + buffer_text }]
+    // })
   }, [])
 
   useEffect(() => {
@@ -37,23 +40,20 @@ export function useChatWorker() {
     worker.onmessage = (e) => {
       const { type, text, error } = e.data
       if (type === "chunk") {
-        console.log(text)
+        // console.log(text)
         bufferRef.current += text
-        if(timeRef.current == null)
+        setIsStreaming(true)
+        if(timerRef.current == null)
           timerRef.current = setTimeout(flush, FLUSH_INTERVAL_MS)
         return;
       }
       flush()
       setIsStreaming(false)
       if (type === "error") {
-        setMessages((prev) => [
-          ...prev,
-          { role: "error", content: "Error: ${error}" }
-        ])
+        setReply(`error: ${error}`)
       }
     }
-    // worker.onerror = (event) => console.error("Worker error:", event ?? "(no message)")
-    worker.onerror = (e) => console.error('Worker error:', e.message, e.filename, e.lineno, e.colno);
+    worker.onerror = (event) => console.error("Worker error:", event ?? "(no message)")
     return () => { //cleanup
       worker.terminate()
       if (timerRef.current != null)
@@ -73,12 +73,9 @@ export function useChatWorker() {
     })
   }
 
-  const sendChat = (messages, chat_uuid) => { // TODO should the Chat component send the text only instead of all messages?
-    // TODO think this through...
-    // messages are sent to this chat worker. However, there is also a local setMessages
+  const sendChat = (messages, chat_uuid) => {
     console.log("sending chat.")
     if (isStreaming || !messages) return
-    // setIsStreaming(true) TODO uncomment this
     workerRef.current?.postMessage({
       type: 'start',
       action: "getAssistantMessage",
@@ -87,7 +84,7 @@ export function useChatWorker() {
     })
   }
 
-  const saveChat = (messages, chat_uuid) => { // TODO should the Chat component send the text only instead of all messages?
+  const saveChat = (messages, chat_uuid) => { 
     console.log("saving chat.")
     if (isStreaming || !messages) return
     console.log("for real")
@@ -103,5 +100,5 @@ export function useChatWorker() {
   }, [])
 
 
-  return { createChat, sendChat, saveChat, text, setText, isStreaming }
+  return { createChat, sendChat, saveChat, isStreaming, reply, setReply }
 }

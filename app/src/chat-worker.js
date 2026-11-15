@@ -1,6 +1,6 @@
-import { createChat } from "./indexedDB-lib"
-import { generateAesKey, encryptWithAesKey, encryptChatToLLM } from "./crypto-lib"
-import { getAssistantResponse, toBase64 } from "./utils"
+import { createChat, getAesKey } from "./indexedDB-lib"
+import { generateAesKey, encryptWithAesKey, encryptChatToLLM, decryptWithAesKey } from "./crypto-lib"
+import { getAssistantResponse } from "./utils"
 
 self.addEventListener('error', (e) => console.log('inside worker:', e.message, e.filename, e.lineno));
 self.addEventListener('unhandledrejection', (e) => console.log('rejection:', e.reason));
@@ -43,15 +43,19 @@ async function processQueue() {
                         console.log("started writing response")
                         const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
                         const reader = await getAssistantResponse(data)
-                        const decoder = new TextDecoder()
+                        // const decoder = new TextDecoder()
                         controller = new AbortController()
                         
                         while(true) {
                             const { done, value } = await reader.read()
                             if (done) break
-                            const text = decoder.decode(value, { stream: true })
-                            console.log(text)
-                            if (text) self.postMessage({ type: "chunk", text })
+                            // const text = decoder.decode(value, { stream: true })
+                            // console.log(text)
+                            // console.log(typeof(text))
+                            const aes_key = await getAesKey(chat_uuid)
+                            // const blob = Uint8Array.from(atob(text), c => c.charCodeAt(0))
+                            const plaintext = await decryptWithAesKey(aes_key, value)
+                            if (plaintext) self.postMessage({ type: "chunk", text: plaintext })
                         }
                         self.postMessage({type: "done"})
                         // self.postMessage(JSON.stringify(result))
