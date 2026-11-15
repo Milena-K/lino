@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 
 interface Task {
-  id: number;
   data: string;
 }
 
@@ -12,7 +11,6 @@ export function useChatWorker() {
   const [isStreaming, setIsStreaming] = useState(false); 
 
   const [text, setText] = useState("")
-  const [id, setId] = useState(0) // TODO figure out how useful is ID
   const workerRef = useRef(null)
   const bufferRef = useRef("")
   const timerRef = useRef(null)
@@ -36,10 +34,10 @@ export function useChatWorker() {
   useEffect(() => {
     const worker = new Worker(new URL("../chat-worker.js", import.meta.url), {type: "module"});
     workerRef.current = worker
-
     worker.onmessage = (e) => {
       const { type, text, error } = e.data
       if (type === "chunk") {
+        console.log(text)
         bufferRef.current += text
         if(timeRef.current == null)
           timerRef.current = setTimeout(flush, FLUSH_INTERVAL_MS)
@@ -47,7 +45,6 @@ export function useChatWorker() {
       }
       flush()
       setIsStreaming(false)
-
       if (type === "error") {
         setMessages((prev) => [
           ...prev,
@@ -55,35 +52,35 @@ export function useChatWorker() {
         ])
       }
     }
-    worker.onerror = (err) => console.error("Worker error:", err.message ?? "(no message)")
-    //cleanup
-    return () => {
+    // worker.onerror = (event) => console.error("Worker error:", event ?? "(no message)")
+    worker.onerror = (e) => console.error('Worker error:', e.message, e.filename, e.lineno, e.colno);
+    return () => { //cleanup
       worker.terminate()
       if (timerRef.current != null)
         clearTimeout(timerRef.current)
     }
   }, [flush])
+  // }, [])
 
   const createChat = (user_message, chat_uuid) => { 
     // call when sending the first message
     // setProcessing(true)
-    setId(id+1)
-    workerRef.current?.postMessage({ id, action: "createChat", messages: [user_message], chat_uuid: chat_uuid })
+    console.log("creating chat.")
+    workerRef.current?.postMessage({
+      action: "createChat",
+      messages: [user_message],
+      chat_uuid: chat_uuid
+    })
   }
 
   const sendChat = (messages, chat_uuid) => { // TODO should the Chat component send the text only instead of all messages?
     // TODO think this through...
-    // messages are sent to this chat worker. However, there is also a local setMessages 
-    // console.log("sending...")
-    // setProcessing(true)
+    // messages are sent to this chat worker. However, there is also a local setMessages
+    console.log("sending chat.")
     if (isStreaming || !messages) return
-    // const history = [...messages, { role: "user", content: userText }];
-    // setMessages([...history, { role: "assistant", content: "" }]);
-    setIsStreaming(true)
-    setId(id+1) // TODO decide if this should be uuid
+    // setIsStreaming(true) TODO uncomment this
     workerRef.current?.postMessage({
       type: 'start',
-      id,
       action: "getAssistantMessage",
       messages,
       chat_uuid: chat_uuid
@@ -91,8 +88,9 @@ export function useChatWorker() {
   }
 
   const saveChat = (messages, chat_uuid) => { // TODO should the Chat component send the text only instead of all messages?
+    console.log("saving chat.")
     if (isStreaming || !messages) return
-    setId(id+1) // TODO decide if this should be uuid
+    console.log("for real")
     workerRef.current?.postMessage({
       action: "saveChat",
       messages,

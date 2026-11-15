@@ -15,34 +15,36 @@ function Chat(props: ChatProps) {
   const { text, createChat, sendChat, saveChat, isStreaming } = useChatWorker()
   let { chat_uuid } = useParams();
   const [reply, setReply] = useState("");
-  const test_messages: Message[] = [
-    {
-      role: "user",
-      content: "test"
-    },
-    {
-      role: "assistant",
-      content: "hi test!"
-    },
-  ]
-  const [messages, setMessages] = useState<Message[]>(test_messages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [title, setTitle] = useState<string>("");
   const [userMessage, setUserMessage] = useState<string>("");
+  const [isFirstMessage, setIsFirstMessage] = useState<boolean>(true);
+  // const test_messages: Message[] = [
+  //   {
+  //     role: "user",
+  //     content: "test"
+  //   },
+  //   {
+  //     role: "assistant",
+  //     content: "hi test!"
+  //   },
+  // ]
 
 
   useEffect(() => {
     resizeTextarea();
   }, [userMessage])
 
-  useEffect(() => {
-    if (!isStreaming) {
-      saveChat(messages, chat_uuid)
-    }
+  // useEffect(() => {
+  //   if (!isStreaming) {
+  //     saveChat(messages, chat_uuid)
+  //   }
     
-  }, [isStreaming])
+  // }, [isStreaming])
 
   useEffect(() => {
-    if(props.firstMessage) {
+    if(isFirstMessage) {
+      setIsFirstMessage(false)
       const user_message: Message = {
         "role": "user",
         "content": props.firstMessage,

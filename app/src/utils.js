@@ -8,19 +8,18 @@ export function toBase64(u8){
 }
 
 export async function getAssistantResponse (data) {
-    const body = JSON.stringify ({
-        enc_messages: toBase64(data.enc_messages),
-        enc_aes: data.enc_aes
-    })
-    // console.log("body") 
-    // console.log(body) // data={enc_messages, enc_aes_key})
+  console.log(data)
+  let body = JSON.stringify ({
+    enc_messages: toBase64(data.enc_messages),
+    enc_aes: data.enc_aes
+  })
   const URL_BASE_STR = "http://localhost:8000/chat/llm"
-  const res = await fetch(URL_BASE_STR, {
+  const response = await fetch(URL_BASE_STR, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body 
+    body: body
   })
 
   if (!response.ok) throw new Error(`HTTP ${response.status}`);

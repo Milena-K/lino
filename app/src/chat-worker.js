@@ -2,6 +2,9 @@ import { createChat } from "./indexedDB-lib"
 import { generateAesKey, encryptWithAesKey, encryptChatToLLM } from "./crypto-lib"
 import { getAssistantResponse, toBase64 } from "./utils"
 
+self.addEventListener('error', (e) => console.log('inside worker:', e.message, e.filename, e.lineno));
+self.addEventListener('unhandledrejection', (e) => console.log('rejection:', e.reason));
+
 const queue = []
 let processing = false
 let controller = null
@@ -29,7 +32,7 @@ async function processQueue() {
                     let res = await createChat(enc_messages, chat_uuid) 
                     // self.postMessage("chat created.")
                 } else if (action == "getAssistantMessage") {
-                    const { type, id } = task.data; // TODO check if id is sent
+                    const type = task.type; // TODO check if id is sent
 
                     if (type === 'cancel') {
                         controller?.abort()
@@ -37,6 +40,7 @@ async function processQueue() {
                     }
 
                     if (type === "start") {
+                        console.log("started writing response")
                         const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
                         const reader = await getAssistantResponse(data)
                         const decoder = new TextDecoder()
@@ -46,9 +50,10 @@ async function processQueue() {
                             const { done, value } = await reader.read()
                             if (done) break
                             const text = decoder.decode(value, { stream: true })
-                            if (text) self.postMessage({ type: "chunk", id, text })
+                            console.log(text)
+                            if (text) self.postMessage({ type: "chunk", text })
                         }
-                        self.postMessage({type: "done", id })
+                        self.postMessage({type: "done"})
                         // self.postMessage(JSON.stringify(result))
                         // self.postMessage("chat sent.")
                     } 
@@ -63,9 +68,9 @@ async function processQueue() {
                 // ADD new actions HERE
             } catch (err) {
                 if (err.name === "AbortError") {
-                    self.postMessage({ type: "aborted", id, error: String(err) })
+                    self.postMessage({ type: "aborted", error: String(err) })
                 } else {
-                    self.postMessage({ type: "error", id, error: String(err) })
+                    self.postMessage({ type: "error", error: String(err) })
                 }
             }
         }
