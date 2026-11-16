@@ -84,7 +84,7 @@ export function useChatWorker() {
     })
   }
 
-  // to DB
+  // to DB and IDB
   const saveChat = (messages, chat_uuid) => { 
     if (isStreaming || !messages) return
     console.log("saving chat.")

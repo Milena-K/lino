@@ -36,7 +36,8 @@ function Chat(props: ChatProps) {
   }, [userMessage])
 
   useEffect(() => {
-    if (!isStreaming) {
+    if (!isStreaming && reply != "") {
+      console.log("it's not streaming and there is a reply.")
       const new_messages = [...messages, {
         role: "assistant",
         content: reply

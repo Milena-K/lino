@@ -113,6 +113,7 @@ export async function createChat(messages, chat_uuid) {
 }
 
 export async function saveChatIDB(messages, chat_uuid) {
+  console.log("saving chat to idb")
     const db = await ensureChatsStore()
     try {
         const tx = db.transaction("chats", "readwrite")

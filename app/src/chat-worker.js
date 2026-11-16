@@ -1,4 +1,4 @@
-import { createChat, getAesKey } from "./indexedDB-lib"
+import { createChat, getAesKey, saveChatIDB } from "./indexedDB-lib"
 import { generateAesKey, encryptWithAesKey, encryptChatToLLM, decryptWithAesKey } from "./crypto-lib"
 import { getAssistantResponse } from "./utils"
 

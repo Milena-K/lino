@@ -143,19 +143,15 @@ async def llm(req: EncryptedRequest):
         )
         async for chunk in response:
             if chunk:
-                print(chunk.message.content.encode())
-                # TODO encode the chunk with AES key
                 nonce = os.urandom(12)
                 plaintext = chunk.message.content.encode()
                 ciphertext = AESGCM(aes_key).encrypt(
                     nonce, plaintext, associated_data=None
                 )
                 blob = nonce + ciphertext
-                print(blob)
                 yield blob
 
     return StreamingResponse(generate(), media_type="application/octet-stream")
-    # return {"ok": True}
 
 
 # TODO improve this method
