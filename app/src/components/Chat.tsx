@@ -37,12 +37,13 @@ function Chat(props: ChatProps) {
 
   useEffect(() => {
     if (!isStreaming) {
-      setMessages([...messages, {
+      const new_messages = [...messages, {
         role: "assistant",
         content: reply
-      }])
+      }]
+      setMessages(new_messages)
       setReply("")
-      // saveChat(messages, chat_uuid)
+      saveChat(new_messages, chat_uuid)
     }
     
   }, [isStreaming])

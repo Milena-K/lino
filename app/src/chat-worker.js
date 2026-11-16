@@ -30,42 +30,36 @@ async function processQueue() {
                     let chat_key = await generateAesKey(true)
                     let enc_messages = await encryptWithAesKey(chat_key, JSON.stringify(messages)) 
                     let res = await createChat(enc_messages, chat_uuid) 
-                    // self.postMessage("chat created.")
                 } else if (action == "getAssistantMessage") {
-                    const type = task.type; // TODO check if id is sent
-
+                    const type = task.type; 
                     if (type === 'cancel') {
                         controller?.abort()
                         return;
                     }
-
                     if (type === "start") {
                         console.log("started writing response")
                         const data = await encryptChatToLLM(messages, chat_uuid) // {enc_messages, enc_aes_key}
                         const reader = await getAssistantResponse(data)
-                        // const decoder = new TextDecoder()
                         controller = new AbortController()
                         
                         while(true) {
                             const { done, value } = await reader.read()
                             if (done) break
-                            // const text = decoder.decode(value, { stream: true })
-                            // console.log(text)
-                            // console.log(typeof(text))
                             const aes_key = await getAesKey(chat_uuid)
-                            // const blob = Uint8Array.from(atob(text), c => c.charCodeAt(0))
                             const plaintext = await decryptWithAesKey(aes_key, value)
                             if (plaintext) self.postMessage({ type: "chunk", text: plaintext })
                         }
                         self.postMessage({type: "done"})
-                        // self.postMessage(JSON.stringify(result))
-                        // self.postMessage("chat sent.")
                     } 
                 } else if (action == "saveChat") {
-                    // TODO find the chat in IndexedDB using UUID
-                    // TODO get the aes key for the chat
+                    // TODO update/save chat to IndexedDB
+                    await saveChatIDB(messages, chat_uuid)
+                    // TODO generate new aes key for enc messages
+                    const new_aes_key = await generateAesKey(true)
                     // TODO encrypt the messages with aes_key (they could be already encrypted)
+                    const enc_messages = await encryptWithAesKey(new_aes_key, JSON.stringify(messages))
                     // TODO encrypt the aes_key with pgp_key
+                    
                     // TODO send to fastapi
                 }
 

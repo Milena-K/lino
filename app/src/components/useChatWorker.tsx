@@ -42,7 +42,7 @@ export function useChatWorker() {
       if (type === "chunk") {
         // console.log(text)
         bufferRef.current += text
-        setIsStreaming(true)
+        setIsStreaming(true) // should i set this here? Does it refresh the component?
         if(timerRef.current == null)
           timerRef.current = setTimeout(flush, FLUSH_INTERVAL_MS)
         return;
@@ -84,10 +84,10 @@ export function useChatWorker() {
     })
   }
 
+  // to DB
   const saveChat = (messages, chat_uuid) => { 
-    console.log("saving chat.")
     if (isStreaming || !messages) return
-    console.log("for real")
+    console.log("saving chat.")
     workerRef.current?.postMessage({
       action: "saveChat",
       messages,

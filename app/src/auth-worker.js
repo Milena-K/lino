@@ -218,13 +218,10 @@ function addKey (keyName, keyValue) {
   };
 }
 
-
-
 // todo add async
 onmessage = (e) => {
-    var action = e.data[0]
-    var secret = e.data[1]
-    var result = `Result: ${action} - ${secret}`
+    const { action, id, pw } = e.data
+    var result = `Result: ${action} - ${id}`
     console.log("message received in worker.");
     postMessage(result)
 }
@@ -266,26 +263,6 @@ onmessage = (e) => {
     //             "Access-Control-Allow-Credentials": false,
     //         },
     //     })
-    // } else if (action == "saveChat") {
-    //     console.log("test")
-    //     // TODO: figure out how to confirm that the secret was sent to the worker
-    //     // const publicKey = await openpgp.readKey({ armoredKey: LLM_PUBLIC_KEY });
-    //     // const secret = await openpgp.encrypt({
-    //     //     message: await openpgp.createMessage({ text: secret_text }),
-    //     //     encryptionKeys: publicKey
-    //     // })
-    //     // await fetch("localhost:8000/chat/save/", {
-    //     //     method: "POST",
-    //     //     headers: {
-    //     //         "Content-Type": "application/json",
-    //     //         "Access-Control-Allow-Origin": ["http://localhost:8000/","*"],
-    //     //         "Access-Control-Allow-Credentials": false,
-    //     //     },
-    //     //     body: {
-    //     //         secret: secret
-    //     //     }
-    //     // })
-
     // } else {
     //     console.log("action is not defined.")
     // }

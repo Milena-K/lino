@@ -2,15 +2,15 @@ import { useState } from "react";
 import "./Form.scss";
 
 
+const worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
 function RegisterForm() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
 
     const handleRegister = (e) => {
         e.preventDefault();
 
-        if (window.Worker) {
+        if (worker) {
             worker.postMessage({ action: "register", id: username, pw: password })
             worker.onmessage = function (e) {
               

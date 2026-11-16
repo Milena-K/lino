@@ -68,6 +68,7 @@ export function openDB(name="SecureDB", version=null, onUpgrade=null) {
     })
 }
 
+
 export async function ensureChatsStore(dbName = "SecureDB") {
     const db = await openDB()
     if (db.objectStoreNames.contains("chats")) return db;
@@ -79,6 +80,13 @@ export async function ensureChatsStore(dbName = "SecureDB") {
         upgradeDb.createObjectStore("chats", {keyPath: "chat_uuid"})
     })
 }
+
+const txDone = tx =>
+    new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => reject(tx.error)
+        tx.onabort = () => reject(tx.error ?? new Error("Transaction aborted"))
+    })
 
 export async function createChat(messages, chat_uuid) {
 /*  Once a chat is opened:
@@ -97,14 +105,33 @@ export async function createChat(messages, chat_uuid) {
     const tx = indexedDB.transaction("chats", "readwrite")
     tx.objectStore("chats").put(chat)
 
-    await new Promise((res, rej) => {
-        tx.oncomplete = res();
-        tx.onerror = () => rej(tx.error)
-    })
+    await txDone(tx)
 
     console.log("Stores in SecureDB:", [...indexedDB.objectStoreNames])
     indexedDB.close();
     return chat
+}
+
+export async function saveChatIDB(messages, chat_uuid) {
+    const db = await ensureChatsStore()
+    try {
+        const tx = db.transaction("chats", "readwrite")
+        const store = tx.objectStore("chats")
+
+        const existing = await promisify(store.get(chat_uuid))
+        if (!existing) {
+            tx.abort()
+            throw new Error(`Chat ${chat_uuid} not found, call createChat first`)
+        }
+
+        const chat = { ...existing, messages }
+        store.put(chat)
+
+        await txDone(tx)
+        return chat
+    } finally {
+        db.close()
+    }
 }
 
 export async function getAesKey(chat_uuid) {
