@@ -69,15 +69,6 @@ async def register(request: RegistrationRequest) -> str:
 @router.post("/register_finish")
 async def register_finish(request: RegistrationFinishRequest):
     user = await db.get_user(request.username)
-    # rsa_key = request.rsa_key
-    # salt = request.salt
-    # iv = request.iv
-    # print("rsa_key")
-    # print(rsa_key)
-    # print("salt")
-    # print(salt)
-    # print("iv")
-    # print(iv)
     if user is None:
         record = opaquepy.register_finish(request.registration_record)
         await db.create_user(request.username, record)

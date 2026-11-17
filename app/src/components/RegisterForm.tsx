@@ -1,25 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useAuthWorker } from "./useAuthWorker";
 import "./Form.scss";
 
 
-const worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
 function RegisterForm() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const { register } = useAuthWorker();
 
     const handleRegister = (e) => {
         e.preventDefault();
-
-        if (worker) {
-            worker.postMessage({ action: "register", id: username, pw: password })
-            worker.onmessage = function (e) {
-              
-                if (e.data.printErr)
-                    console.log(e.data.printErr)
-                if (e.data.print)
-                    console.log(e.data.print)
-            };
-        }
+        register(username, password);
     }
 
 

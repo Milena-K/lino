@@ -1,39 +1,41 @@
-import * as opaque from "@serenity-kit/opaque"
-import * as forge from "node-forge"
-import * as openpgp from 'openpgp';
-// import hkdf from 'js-crypto-hkdf'
-import {RSA_algorithm,
-        wrapCryptoKey,
-        getKeyMaterial,
-        getKey,
-        unwrapPrivateKey,
-        bytesToHex,
-       } from "./crypto"
-import LLM_PUBLIC_KEY from "./constants.js"
+// import * as forge from "node-forge"
+// import * as openpgp from 'openpgp';
+// // import hkdf from 'js-crypto-hkdf'
+// import {RSA_algorithm,
+//         wrapCryptoKey,
+//         getKeyMaterial,
+//         getKey,
+//         unwrapPrivateKey,
+//         bytesToHex,
+//        } from "./crypto"
 
-var URL_BASE_STR = "http://localhost:8000/auth"
-
-
-
+import * as opaque from "@serenity-kit/opaque";
+// var URL_BASE_STR = "http://localhost:8000/auth"
+var URL_BASE_STR = "https://spidery-spooky-wraith-x9pj6r4q9q9fx9-8000.app.github.dev/auth"
 
 async function register(username, password) {
   const { clientRegistrationState, registrationRequest } =
     opaque.client.startRegistration({ password });
-  var response = await fetch(URL_BASE_STR + "/register", {
+  const response = await fetch(URL_BASE_STR + "/register", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": ["http://localhost:8000/"],
-      "Access-Control-Allow-Credentials": "false", // TODO made a change here
     },
     body: JSON.stringify({
       username,
       regReq: registrationRequest,
     })
   })
-  var registrationResponse = await response.json()
-  var result = { clientRegistrationState, registrationResponse };
-  console.log("test")
+  const registrationResponse = await response.json()
+  const result = { clientRegistrationState, registrationResponse };
+  if (result.status == 200) {
+    console.log("#1 Registration successful.")
+  }
+  if (response.status != 200) {
+    // TODO: check for server response "User already exists"
+    console.error(response.status)
+    console.error(response.statusText)
+  }
   return result
 }
 
@@ -41,190 +43,170 @@ async function register_finish(username,
                                password,
                                clientRegistrationState,
                                registrationResponse) {
+  console.log("register_finish called with: ")
   const { exportKey, registrationRecord } = opaque.client.finishRegistration({
     clientRegistrationState,
     registrationResponse,
     password
   })
-  console.log(password)
-
-  // const RSA_key = await crypto.subtle.generateKey(RSA_algorithm, true, ["encrypt", "decrypt"])
-  // const RSA_priv_key = await crypto.subtle.exportKey("pkcs8", RSA_key.privateKey)
-  // console.log("RSA")
-  // console.log(RSA_priv_key)
-   
-  // const RSA_pub_key = RSA_key.publicKey
-  // let { wrappedKey, salt, iv } = await wrapCryptoKey(exportKey, RSA_key.privateKey) // key, salt, iv
-  // wraps and encrypts a Forge private key and outputs it in PEM format
-  // TODO: convert RSA_priv_key to forge.pki.PrivateKey
-  // const pem = forge.pki.encryptRsaPrivateKey(RSA_priv_key, password);
-
-  // console.log("something")
-  // console.log(pem)
-  // const rsa_key = pem
-  // const rsa_key = bytesToHex(wrappedKey)
-  // salt = bytesToHex(salt)
-  // iv = bytesToHex(salt)
+  console.log("registrationRecord: ", registrationRecord)
+  console.log("username: ", username)
   const result = await fetch(URL_BASE_STR + "/register_finish", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": ["http://localhost:8000/","*"],
-      "Access-Control-Allow-Credentials": false,
     },
     body: JSON.stringify({
       username,
       registration_record: registrationRecord,
-      // rsa_key,
-      // salt,
-      // iv
     })
   })
-    // console.log("----------------")
-    // console.log("rsa_key")
-    // console.log("----------------")
-    // console.log(rsa_key)
-    // console.log("----------------")
-    // console.log("salt")
-    // console.log("----------------")
-    // console.log(salt)
-    // console.log("----------------")
-    // console.log("iv")
-    // console.log("----------------")
-    // console.log(iv)
   if (result.status == 200) {
+    console.log("#2 Registration successful.")
   }
   if (result.status != 200) {
     // TODO: check for server response "User already exists"
     console.error(result.status)
     console.error(result.statusText)
   }
+  return exportKey
 }
 
-async function login(username, password) {
-  const { clientLoginState, startLoginRequest } = opaque.client.startLogin({
-    password
-  })
-  var response = await fetch(URL_BASE_STR + "/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": ["http://localhost:8000/auth/login"], // ,"*"
-      "Access-Control-Allow-Credentials": false,
-    },
-    body: JSON.stringify({
-      username,
-      login_request: startLoginRequest
-    })
-  })
-  var loginResponse  = await response.json()
-  var result = { clientLoginState, loginResponse }
-  return result
-}
+// REGISTER FUNCTIONS ABOVE
 
-async function login_finish(username, password, clientLoginState, loginResponse) {
-  console.log({
-    clientLoginState,
-    loginResponse,
-    password
-  })
-  const loginResult = opaque.client.finishLogin({
-    clientLoginState,
-    loginResponse,
-    password
-  })
-  if (!loginResult) {
-    throw new Error("Login failed.")
-  }
-  const { exportKey, finishLoginRequest, sessionKey } = loginResult
-  console.log("session key:")
-  console.log(sessionKey)
-  let loginRequest = await fetch(URL_BASE_STR + "/login_finish", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": ["http://localhost:8000/auth/login_finish","*"],
-      "Access-Control-Allow-Credentials": false,
-    },
-    body: JSON.stringify({
-      username,
-      request_finish: finishLoginRequest
-    })
-  })
+// async function login(username, password) {
+//   const { clientLoginState, startLoginRequest } = opaque.client.startLogin({
+//     password
+//   })
+//   var response = await fetch(URL_BASE_STR + "/login", {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "Access-Control-Allow-Origin": ["http://localhost:8000/auth/login"], // ,"*"
+//       "Access-Control-Allow-Credentials": false,
+//     },
+//     body: JSON.stringify({
+//       username,
+//       login_request: startLoginRequest
+//     })
+//   })
+//   var loginResponse  = await response.json()
+//   var result = { clientLoginState, loginResponse }
+//   return result
+// }
 
-  if (loginRequest.ok) {
-    //TODO: get the RSAkey from the loginRequest
-    const userKey = loginRequest.body
-    const RSAKey = await unwrapPrivateKey(exportKey, userKey.RSAKey, userKey.salt, userKey.iv)
-    // derive AES key from session key
-    const keyMaterial = await getKeyMaterial(sessionKey)
-    const salt = crypto.getRandomValues(new Uint8Array(16))
-    const session_AES_key = await getKey(keyMaterial, salt)
-    addKey("RSAKey", RSAKey)
-    addKey("sessionAESKey", session_AES_key)
-  }
-}
+// async function login_finish(username, password, clientLoginState, loginResponse) {
+//   console.log({
+//     clientLoginState,
+//     loginResponse,
+//     password
+//   })
+//   const loginResult = opaque.client.finishLogin({
+//     clientLoginState,
+//     loginResponse,
+//     password
+//   })
+//   if (!loginResult) {
+//     throw new Error("Login failed.")
+//   }
+//   const { exportKey, finishLoginRequest, sessionKey } = loginResult
+//   console.log("session key:")
+//   console.log(sessionKey)
+//   let loginRequest = await fetch(URL_BASE_STR + "/login_finish", {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "Access-Control-Allow-Origin": ["http://localhost:8000/auth/login_finish","*"],
+//       "Access-Control-Allow-Credentials": false,
+//     },
+//     body: JSON.stringify({
+//       username,
+//       request_finish: finishLoginRequest
+//     })
+//   })
+// 
+//   if (loginRequest.ok) {
+//     //TODO: get the RSAkey from the loginRequest
+//     const userKey = loginRequest.body
+//     const RSAKey = await unwrapPrivateKey(exportKey, userKey.RSAKey, userKey.salt, userKey.iv)
+//     // derive AES key from session key
+//     const keyMaterial = await getKeyMaterial(sessionKey)
+//     const salt = crypto.getRandomValues(new Uint8Array(16))
+//     const session_AES_key = await getKey(keyMaterial, salt)
+//     addKey("RSAKey", RSAKey)
+//     addKey("sessionAESKey", session_AES_key)
+//   }
+// }
 
-function createDB () {
-  const dbName = "SecureDB";
-  const request = indexedDB.open(dbName)
-  request.onupgradeneeded = (event) => {
-    const db = event.target.result;
-    if (!db.objectStoreNames.contains("keys")) {
-      db.createObjectStore("keys", {keyPath: "keyName"})
-    }
-    console.log("Database setup complete.")
-  }
-  request.onsuccess = (event) => {
-    const db = event.target.result;
-    console.log("DB opened successfully. ", db)
-  }
-  request.onerror = (event) => {
-    console.log("Error opening database: ", event.target.errorCode)
-  }
-}
+// function createDB () {
+//   const dbName = "SecureDB";
+//   const request = indexedDB.open(dbName)
+//   request.onupgradeneeded = (event) => {
+//     const db = event.target.result;
+//     if (!db.objectStoreNames.contains("keys")) {
+//       db.createObjectStore("keys", {keyPath: "keyName"})
+//     }
+//     console.log("Database setup complete.")
+//   }
+//   request.onsuccess = (event) => {
+//     const db = event.target.result;
+//     console.log("DB opened successfully. ", db)
+//   }
+//   request.onerror = (event) => {
+//     console.log("Error opening database: ", event.target.errorCode)
+//   }
+// }
 
-function addKey (keyName, keyValue) {
-  const request = indexedDB.open("SecureDB");
-  request.onsuccess = (event) => {
-    const db = event.target.result
-    const transaction = db.transaction("keys", "readwrite")
-    const objectStore = transaction.objectStore("keys")
-    const key = { keyName, keyValue }
+// function addKey (keyName, keyValue) {
+//   const request = indexedDB.open("SecureDB");
+//   request.onsuccess = (event) => {
+//     const db = event.target.result
+//     const transaction = db.transaction("keys", "readwrite")
+//     const objectStore = transaction.objectStore("keys")
+//     const key = { keyName, keyValue }
 
-    const retrieveRequest = objectStore.get(keyName)
-    // this means that there is no key with this name entered yet.
-    retrieveRequest.onerror = (event) => {
-        console.error(`There was no key with the name ${keyName}. We will add one now.`)
-        // we should probably add one
-        const addRequest = objectStore.add(key)
+//     const retrieveRequest = objectStore.get(keyName)
+//     // this means that there is no key with this name entered yet.
+//     retrieveRequest.onerror = (event) => {
+//         console.error(`There was no key with the name ${keyName}. We will add one now.`)
+//         // we should probably add one
+//         const addRequest = objectStore.add(key)
 
-        addRequest.onsuccess = () => {
-        console.log("Key added: ", key)
-        }
-        addRequest.onerror = () => {
-        console.error("Error adding key: ", event.target.errorCode)
-        }
-    }
-    retrieveRequest.onsuccess = (event) => {
-        //just inform the user
-        console.error(`There is already a key named: ${keyName}.`)
-    }
+//         addRequest.onsuccess = () => {
+//         console.log("Key added: ", key)
+//         }
+//         addRequest.onerror = () => {
+//         console.error("Error adding key: ", event.target.errorCode)
+//         }
+//     }
+//     retrieveRequest.onsuccess = (event) => {
+//         //just inform the user
+//         console.error(`There is already a key named: ${keyName}.`)
+//     }
 
-  }
-  request.onerror = (event) => {
-      console.error(`IndexedDB didn't open correctly (addKey):
-                    ${event.target.error?.message}`);
-  };
-}
+//   }
+//   request.onerror = (event) => {
+//       console.error(`IndexedDB didn't open correctly (addKey):
+//                     ${event.target.error?.message}`);
+//   };
+// }
 
-// todo add async
-onmessage = (e) => {
+
+onmessage = async (e) => {
     const { action, id, pw } = e.data
     var result = `Result: ${action} - ${id}`
     console.log("message received in worker.");
-    postMessage(result)
-}
+
+    if (action === "register") {
+        const { clientRegistrationState, registrationResponse } = await register(id, pw)
+        console.log("clientRegistrationState: ", clientRegistrationState)
+        console.log("registrationResponse: ", registrationResponse)
+        const exportKey = await register_finish(id, pw, clientRegistrationState, registrationResponse)
+        self.postMessage("Registration successful.")
+        console.log("exportKey: ", exportKey) 
+    }
+};
+
     // console.log("message received");
     // var action = e.data.action;
     // // for some actions username and password are null, I should check if they are not null somewhere
@@ -266,4 +248,3 @@ onmessage = (e) => {
     // } else {
     //     console.log("action is not defined.")
     // }
-// };
