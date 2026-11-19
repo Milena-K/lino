@@ -52,8 +52,25 @@
     }
 }
 
+.accountIcon {
+    background-color: $black;
+    color: $white;
+    height: 50px;
+    width: 50px;
+    cursor: pointer;
+    border-radius: 10px;
+    @include break(sm) {
+        // padding: 2em;
+        margin: 0.7em;
+        height: 30px;
+        width: 30px;
+        border-radius: 5px;
+    }
+}
+
 .icon {
     flex-grow: 0;
+    cursor: pointer;
     display:flex;
     justify-content: center;
     align-items: center;

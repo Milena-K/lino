@@ -68,6 +68,42 @@ export function openDB(name="SecureDB", version=null, onUpgrade=null) {
     })
 }
 
+export async function ensureUserStore(dbName = "SecureDB") {
+    const db = await openDB()
+    if (db.objectStoreNames.contains("user")) return db;
+
+    const nextVersion = db.version + 1
+    db.close();
+
+    return openDB(dbName, nextVersion, upgradeDb => {
+        upgradeDb.createObjectStore("user", {keyPath: "user_id"})
+    })
+}
+
+export async function createUser(user_id, AES_key) {
+    const user = {
+        user_id,
+        AES_key
+    }
+    const indexedDB = await ensureUserStore()
+    const tx = indexedDB.transaction("user", "readwrite")
+    tx.objectStore("user").put(user)
+
+    await txDone(tx)
+    indexedDB.close();
+
+    return user
+}
+
+export async function getUserAesKey(user_id) {
+    const indexedDB = await ensureUserStore()
+    const tx = indexedDB.transaction("user", "readonly")
+    const store = tx.objectStore("user")
+    const user = await promisify(store.get(user_id))
+    await txDone(tx)
+    indexedDB.close()
+    return user.AES_key
+}
 
 export async function ensureChatsStore(dbName = "SecureDB") {
     const db = await openDB()
@@ -143,4 +179,13 @@ export async function getAesKey(chat_uuid) {
         return null 
     }
     return result.aesKey // chat does exist 
+}
+
+export async function deleteIDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.deleteDatabase("SecureDB")
+        req.onsuccess = () => resolve()
+        req.onerror = () => reject(req.error)
+        req.onblocked = () => reject(new Error("Delete blocked: close other tabs using this DB"))
+    })
 }

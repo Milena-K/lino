@@ -1,16 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useAuthWorker } from "./useAuthWorker";
 import "./Form.scss";
+import { useNavigate } from "react-router";
 
 
 function RegisterForm() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const { register } = useAuthWorker();
+    const navigate = useNavigate();
 
-    const handleRegister = (e) => {
-        e.preventDefault();
+    const handleRegister = (event) => {
+        event.preventDefault();
         register(username, password);
+        navigate("/");
     }
 
 

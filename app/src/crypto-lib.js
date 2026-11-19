@@ -72,28 +72,66 @@ export async function exportAesKey(key) {
     return btoa(String.fromCharCode(...new Uint8Array(raw)))
 };
 
-/* this function should be used to derive AES key from OPAQUE export key */
-export async function deriveAesKey(bytes) {
-    const info = new TextEncoder().encode("aes-gcm-256")
-    const baseKey = await crypto.subtle.importKey(
-        "raw",
-        bytes,
-        "HKDF",
-        false,
-        ["deriveKey"]
-    );
-    return crypto.subtle.deriveKey(
-        {
-            name: "HKDF",
-            hash: "SHA-256",
-            info,
-            salt: new Uint8Array(0), // no salt
-        },
-        baseKey,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["encrypt", "decrypt"]
-    )
+const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+// step 1: convert export key base64 string to bytes
+export function base64UrlToBytes(b64url) {
+  // base64url -> standard base64 alphabet
+  let b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4 !== 0) b64 += '=';
+
+  // strip padding for decoding loop
+  const clean = b64.replace(/=+$/, '');
+  const byteLength = Math.floor((clean.length * 6) / 8);
+  const bytes = new Uint8Array(byteLength);
+
+  let bitBuffer = 0;
+  let bitsInBuffer = 0;
+  let byteIndex = 0;
+
+  for (let i = 0; i < clean.length; i++) {
+    const charIndex = BASE64_CHARS.indexOf(clean[i]);
+    if (charIndex === -1) {
+      throw new Error(`Invalid base64 character: ${clean[i]}`);
+    }
+    bitBuffer = (bitBuffer << 6) | charIndex;
+    bitsInBuffer += 6;
+
+    if (bitsInBuffer >= 8) {
+      bitsInBuffer -= 8;
+      bytes[byteIndex++] = (bitBuffer >> bitsInBuffer) & 0xff;
+    }
+  }
+
+  return bytes;
+}
+
+// step 2: derive AES key from export key bytes
+export async function deriveAesKeyFromExportKey(exportKeyBytes, info = "aes-key") {
+  // Import the raw export key as HKDF input key material
+  const ikm = await crypto.subtle.importKey(
+    "raw",
+    exportKeyBytes,
+    "HKDF",
+    false,
+    ["deriveKey"]
+  );
+
+  // Derive a proper AES-GCM key from it
+  const aesKey = await crypto.subtle.deriveKey(
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: new Uint8Array(0),
+      info: new TextEncoder().encode(info),
+    },
+    ikm,
+    { name: "AES-GCM", length: 256 },
+    false, // non-extractable
+    ["encrypt", "decrypt"]
+  );
+
+  return aesKey;
 }
 
 /* function for wrapping the PGP private key, or any other plaintext */

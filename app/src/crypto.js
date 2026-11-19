@@ -9,7 +9,7 @@ Get some key material to use as input to the deriveKey method.
 The key material is the export key, instead of the user password.
 */
 export function getKeyMaterial(material) {
-  const enc = new TextEncod er()
+  const enc = new TextEncoder()
   return crypto.subtle.importKey(
     "raw",
     enc.encode(material),

@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef } from "react"
 
 
 export function useAuthWorker() {
-  const workerRef = useRef(null)
+  const workerRef = useRef<Worker | null>(null)
 
 
   useEffect(() => {
@@ -30,9 +30,9 @@ export function useAuthWorker() {
     }
   }
 
-  const logout = () => {
+  const logout = (username: string) => {
     if (workerRef.current) {
-      workerRef.current.postMessage({ action: "logout" })
+      workerRef.current.postMessage({ action: "logout", id: username })
     }
   }
 

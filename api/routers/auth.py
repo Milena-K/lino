@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from pydantic import BaseModel, TypeAdapter
-from fastapi import Depends, APIRouter, Request, HTTPException
+from pydantic import BaseModel
+from fastapi import Depends, APIRouter, HTTPException
 from pyrate_limiter import Duration, Limiter, Rate
 from fastapi_limiter.depends import RateLimiter
 from dotenv import load_dotenv
@@ -8,8 +8,6 @@ from datetime import datetime
 
 from api.db.db_types import User
 import os
-import json
-import base64
 import opaquepy
 
 import api.db.main as db
@@ -38,9 +36,6 @@ class RegistrationRequest(BaseModel):
 class RegistrationFinishRequest(BaseModel):
     username: str
     registration_record: str
-    # rsa_key: str
-    # salt: str
-    # iv: str
 
 
 class LoginRequest(BaseModel):
@@ -51,6 +46,9 @@ class LoginRequest(BaseModel):
 class LoginFinishRequest(BaseModel):
     username: str
     request_finish: str
+
+class LogoutRequest(BaseModel):
+    username: str
 
 
 @router.post("/register")
@@ -120,9 +118,9 @@ async def login_finish(request: LoginFinishRequest):
     }
 
 
-@router.post("/logout/{username}")
-async def sign_out(username: str):
-    await db.delete_login_record(username)
+@router.post("/logout")
+async def sign_out(request: LogoutRequest):
+    await db.delete_login_record(request.username)
 
 
 if __name__ == "__main__":
