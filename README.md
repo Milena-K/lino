@@ -2,16 +2,25 @@
 User interface for using open-source LLMs, with zero-access encryption.
 
 ## Install and start React app
-cd app/  npm install  npm run dev
+cd app/<br>
+npm install<br>
+npm run dev<br>
 
 ## Install Python packages
-python -m venv venv  source venv/bin/activate  pip install -r requirements.txt
+python -m venv venv<br>
+source venv/bin/activate<br>
+pip install -r requirements.txt<br>
 
 ## Setup DB
-cd api/db/  docker compose up -d  python main.py
+cd api/db/<br>
+docker compose up -d<br>
+python main.py<br>
 
 ## Start Fastapi server
-cd api/  uv run fastapi dev
+cd api/<br>
+uv run fastapi dev
 
 ## Setup LLM
-cd api/llm/  docker compose up  docker exec ollama ollama pull llama3.2:1b
+cd api/llm/<br>
+docker compose up<br>
+docker exec ollama ollama pull llama3.2:1b
