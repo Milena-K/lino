@@ -1,10 +1,10 @@
 import { useContext, useEffect } from "react"
 import "./KnowledgeBase.scss"
-import { ButtonContext } from "../Contexts"
+import { ButtonContext } from "../Contexts.tsx"
 
 
 function KnowledgeBase() {
-  const [showKB, setShowKB] = useContext(ButtonContext)
+  const { showKB, setShowKB } = useContext(ButtonContext)
 
   useEffect(() => {
     if (showKB && window.innerWidth < 991){
@@ -13,7 +13,7 @@ function KnowledgeBase() {
   }, [window.innerWidth])
 
   return (
-    <div className={"knowledge-base " + (!showKB ? "hide ": "")} name="knowledge-base">
+    <div className={"knowledge-base " + (!showKB ? "hide ": "")}>
       Knowledge base
     </div>
   )

@@ -1,24 +1,19 @@
 import { useState } from "react";
+import { useAuthWorker } from "./useAuthWorker";
 import "./Form.scss";
+import { useNavigate } from "react-router";
 
 
 function RegisterForm() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
+    const { register } = useAuthWorker();
+    const navigate = useNavigate();
 
-    const handleRegister = (e) => {
-        e.preventDefault();
-
-        if (window.Worker) {
-            worker.postMessage({ action: "register", id: username, pw: password })
-            worker.onmessage = function (e) {
-                if (e.data.printErr)
-                    console.log(e.data.printErr)
-                if (e.data.print)
-                    console.log(e.data.print)
-            };
-        }
+    const handleRegister = (event) => {
+        event.preventDefault();
+        register(username, password);
+        navigate("/");
     }
 
 

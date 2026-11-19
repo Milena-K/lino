@@ -1,35 +1,25 @@
 import { useState } from "react";
 import "./Form.scss";
+import { useAuthWorker } from "./useAuthWorker";
+import { useNavigate } from "react-router";
 
 function LoginForm() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const worker = new Worker(new URL("../auth-worker.js", import.meta.url), {type: "module"});
+    const { login, logout } = useAuthWorker();
+    const navigate = useNavigate();
+
 
     const handleLogin = (e) => {
         e.preventDefault()
-        if (window.Worker) {
-            worker.postMessage({ action: "login", id: username, pw: password })
-            worker.onmessage = function (e) {
-                if (e.data.printErr)
-                    console.log(e.data.printErr)
-                if (e.data.print)
-                    console.log(e.data.print)
-            };
-        }
+        login(username, password)
+        navigate("/")
     }
 
     const handleLogOut = (e) => {
         e.preventDefault()
-        if (window.Worker) {
-            worker.postMessage({ action: "logout", id: username })
-            worker.onmessage = function (e) {
-                if (e.data.printErr)
-                    console.log(e.data.printErr)
-                if (e.data.print)
-                    console.log(e.data.print)
-            };
-        }
+        logout(username)
+        // navigate("/login")
     }
 
     return (
